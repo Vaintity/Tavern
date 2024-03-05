@@ -1,24 +1,24 @@
 class menu:
     def __init__(self):
-        self.drinks = []
+        self.items = []
     
     def __repr__(self):
         return self
     
     def __str__(self):
-        for i in self:
-            return f'{i+1}. {self[i].name}, {self[i].price}, {self[i].qnt};'
+        for i in range(len(self.items)):
+            return f'{i+1}. {self.items[i].name}, {self.items[i].price}, {self.items[i].qnt};'
     
-    def add(self, drink):
-        self.drinks.append(drink)
+    def add(self, item):
+        self.items.append(item)
     
-    def simple_rem(self, drink_r):
-        if isinstance(drink_r, drink):
-            self.remove(drink_r)
+    def simple_rem(self, item_r):
+        if isinstance(item_r, item):
+            self.remove(item_r)
         else:
             raise TypeError('Not supported variable type')
         
-class drink:
+class item:
     def __init__(self, name, price, qnt):
         self.name = name
         self.price = price
@@ -54,79 +54,115 @@ menu_1 = menu()
 print("Empty menu was created.")
 
 def show_menu():
-    print("1. Create drink")
-    print("2. Show current drink")
-    print("3. Change name of current drink")
-    print("4. Change price of current drink")
-    print("5. Change qnt of current drink")
-    print("6. Add current drink to the menu")
+    print("\n1. Create item")
+    print("2. Show current item")
+    print("3. Change name of current item")
+    print("4. Change price of current item")
+    print("5. Change qnt of current item")
+    print("6. Add current item to the menu")
     print("7. Show full menu")
     print("8. Simple remove form menu")
     print("9. Filter menu")
-    print("10. Exit")
+    print("10. Exit \n")
 
-cntr = 0
+item_1 = item("name", 0, 0)
 
 while True:
     show_menu()
-    choice = input("Enter your choice (1-4): ")
+    choice = input("Enter your choice (1-10): ")
     
     if choice == "1":
         print("Name:")
         d1_name = input()
 
-        print("Price:")
-        d1_price_str = input()
-        try:
-            d1_price = float(d1_price_str)
-        except ValueError:
-            print("Invalid input: qnt not a valid float")
+        while True:
+            print("Price:")
+            d1_price_str = input()
+            try:
+                d1_price = float(d1_price_str)
+                break
+            except ValueError:
+                print("Invalid input: qnt not a valid float \n")
+        while True:
+            print("Qnt:")
+            d1_qnt_str = input()
+            try:
+                d1_qnt = int(d1_qnt_str)
+                break
+            except ValueError:
+                print("Invalid input: qnt not a valid int \n")
 
-        print("Qnt:")
-        d1_qnt_str = input()
         try:
-            d1_qnt = int(d1_qnt_str)
-        except ValueError:
-            print("Invalid input: qnt not a valid int")
-
-        drink_1 = drink(d1_name, d1_price, d1_qnt)
+            item_1 = item(d1_name, d1_price, d1_qnt)
+            print("Created successfully")
+        except:
+            print("Something went wrong while trying to create item...")
 
     elif choice == "2":
-        drink_1.__str__
+        print(item_1)
 
     elif choice == "3":
-        drink_1.change_name
+        print("Provide new name:")
+        name = input()
+        item_1.change_name(name)
+        
     elif choice == "4":
-        drink_1.change_price
+        while True:
+            print("Provide new price:")
+            try:
+                price = float(input())
+                break
+            except:
+                print("Incorrect value")
+        item_1.change_price(price)
+
     elif choice == "5":
-        drink_1.change_qnt
+        while True:
+            print("Provide new qnt:")
+            try:
+                qnt = int(input())
+                break
+            except:
+                print("Incorrect value")
+        item_1.change_qnt(qnt)
     
     elif choice == "6":
-        menu_1.add(drink_1)
+        try:
+            menu_1.add(item_1)
+            print("\nItem was added successfully")
+        except:
+            print("\nSomething went wrong while trying to add an item")
 
     elif choice == "7":
-        menu_1.__str__
+        print("\n", menu_1)
     
     elif choice == "8":
         print("Name:")
         dr_name = input()
 
-        print("Price:")
-        dr_price_str = input()
-        try:
-            dr_price = float(dr_price_str)
-        except ValueError:
-            print("Invalid input: qnt not a valid float")
+        while True:
+            print("Price:")
+            dr_price_str = input()
+            try:
+                dr_price = float(dr_price_str)
+                break
+            except ValueError:
+                print("Invalid input: qnt not a valid float")
 
-        print("Qnt:")
-        dr_qnt_str = input()
-        try:
-            dr_qnt = int(dr_qnt_str)
-        except ValueError:
-            print("Invalid input: qnt not a valid int")
+        while True:
+            print("Qnt:")
+            dr_qnt_str = input()
+            try:
+                dr_qnt = int(dr_qnt_str)
+                break
+            except ValueError:
+                print("Invalid input: qnt not a valid int")
 
-        drink_r = drink(dr_name, dr_price, dr_qnt)
-        menu_1.simple_rem(drink_r)
+        item_r = item(dr_name, dr_price, dr_qnt)
+        try:
+            menu_1.simple_rem(item_r)
+        except:
+            print("No such item")
 
     elif choice == "9":
         print("1. Blackilst \n2. Whitelist")
@@ -139,7 +175,7 @@ while True:
 
 
     elif choice == "10":
-        print("Exiting the program. Goodbye!")
+        print("\nExiting the program. Goodbye!")
         break
     else:
         print("Invalid choice. Please enter a number between 1 and 10.")
