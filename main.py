@@ -14,6 +14,12 @@ class menu:
     def add(self, item):
         self.items.append(item)
     
+    def find(self, other):
+        for i in range(len(self.items)):
+            if self.items[i] == other:
+                return True
+        return False
+    
     def simple_rem(self, item_r):
         self.items.remove(item_r)
         
@@ -63,19 +69,19 @@ def filtered(menu_obj, filtered_value, oper_1, oper_2):
     return filtered_menu
 
 menu_1 = menu()
-print("Empty menu was created.")
+print("Empty menu was created. \n")
 
 def show_menu():
-    print("\n1. Create item")
-    print("2. Show current item")
-    print("3. Change name of current item")
-    print("4. Change price of current item")
-    print("5. Change qnt of current item")
-    print("6. Add current item to the menu")
-    print("7. Show full menu")
-    print("8. Simple remove form menu")
-    print("9. Filter menu")
-    print("10. Exit \n")
+    print("""1. Create item 
+2. Show current item 
+3. Change name of current item 
+4. Change price of current item 
+5. Change qnt of current item 
+6. Add current item to the menu 
+7. Show full menu 
+8. Simple remove form menu 
+9. Filter menu 
+10. Exit \n""")
 
 item_1 = item("name", 0, 0)
 
@@ -92,58 +98,70 @@ while True:
             d1_price_str = input()
             try:
                 d1_price = float(d1_price_str)
-                break
+                if d1_price >= 0:
+                    break
+                else:
+                    print("\nprice can't be negative\n")
             except ValueError:
-                print("Invalid input: qnt not a valid float \n")
+                print("\nInvalid input: qnt not a valid float\n")
         while True:
             print("Qnt:")
             d1_qnt_str = input()
             try:
                 d1_qnt = int(d1_qnt_str)
-                break
+                if d1_qnt >= 0:
+                    break
+                else:
+                    print("\nqnt can't be negative\n")
             except ValueError:
-                print("Invalid input: qnt not a valid int \n")
+                print("\nInvalid input: qnt not a valid int\n")
 
         try:
             item_1 = item(d1_name, d1_price, d1_qnt)
-            print("Created successfully")
+            print("\nCreated successfully\n")
         except:
-            print("Something went wrong while trying to create item...")
+            print("\nSomething went wrong while trying to create item...\n")
 
     elif choice == "2":
-        print(item_1)
+        print(f"\nCurrent item: \n{item_1}\n")
 
     elif choice == "3":
-        print("Provide new name:")
+        print(f"\nCurrent name: {item_1.name} \nProvide new name:")
         name = input()
         item_1.change_name(name)
         
     elif choice == "4":
         while True:
-            print("Provide new price:")
+            print(f"\nCurrent price: {item_1.price} \nProvide new price:")
             try:
                 price = float(input())
-                break
+                if price >= 0:
+                    break
+                else:
+                    print("\nprice can't be negative\n")
             except:
-                print("Incorrect value")
+                print("\nIncorrect value\n")
         item_1.change_price(price)
 
     elif choice == "5":
         while True:
-            print("Provide new qnt:")
+            print(f"\nCurrent qnt: {item_1.qnt} \nProvide new qnt:")
             try:
                 qnt = int(input())
-                break
+                if qnt >= 0:
+                    break
+                else:
+                    print("\nqnt can't be negative\n")
             except:
-                print("Incorrect value")
+                print("\nIncorrect value\n")
         item_1.change_qnt(qnt)
     
     elif choice == "6":
         try:
             menu_1.add(item_1)
-            print("\nItem was added successfully")
+            print("\nItem was added successfully\n")
         except:
-            print("\nSomething went wrong while trying to add an item")
+            print("\nSomething went wrong while trying to add an item\n")
 
     elif choice == "7":
         print(menu_1)
@@ -157,57 +175,61 @@ while True:
             dr_price_str = input()
             try:
                 dr_price = float(dr_price_str)
-                break
+                if dr_price >= 0:
+                    break
+                else:
+                    print("\nprice can't be negative\n")
             except ValueError:
-                print("Invalid input: qnt not a valid float")
+                print("\nInvalid input: price not a valid float\n")
 
         while True:
             print("Qnt:")
             dr_qnt_str = input()
             try:
                 dr_qnt = int(dr_qnt_str)
-                break
+                if dr_qnt >= 0:
+                    break
+                else:
+                    print("\nqnt can't be negative\n")
             except ValueError:
-                print("Invalid input: qnt not a valid int")
+                print("\nInvalid input: qnt not a valid int\n")
 
         item_r = item(dr_name, dr_price, dr_qnt)
 
-        print("Item to remove: ", item_r)
+        print("\nItem to remove: ", item_r)
 
-        for i in range(len(menu_1.items)):
-            if menu_1.items[i] == item_r:
-                print("item found")
-                break
-            else:
-                print("item not found")
-        
+        if menu_1.find(item_r):
+            print("\nItem found\n")
+        else:
+            print("\nItem not found\n")
+
         try:
             menu_1.simple_rem(item_r)
-            print("item deleted")
+            print("item deleted\n")
         except:
-            print("unable to delete")
-
+            print("unable to delete\n")
+            
     elif choice == "9":
-        print("\n1. Blackilst \n2. Whitelist\n")
+        print("\n1. Blackilst \n2. Whitelist")
         while True:
             try:
                 oper_1 = int(input())
                 if 0 < oper_1 < 3:
                     break
                 else:
-                    print("Incorrect operation number")
+                    print("\nIncorrect operation number\n")
             except:
-                print("Incorrect operation value type")
-        print("\n1. Name \n2. Price \n3. Qnt\n")
+                print("\nIncorrect operation value type\n")
+        print("\n1. Name \n2. Price \n3. Qnt")
         while True:
             try:
                 oper_2 = int(input())
                 if 0 < oper_2 < 4:
                     break
                 else:
-                    print("Incorrect operation number")
+                    print("\nIncorrect operation number\n")
             except:
-                print("Incorrect operation value type")
+                print("\nIncorrect operation value type\n")
         print("Provide filtered value: ")
         filtered_value = input()
         filtered_menu = filtered(menu_1, filtered_value, oper_1, oper_2)
@@ -216,8 +238,8 @@ while True:
 
 
     elif choice == "10":
-        print("\nExiting the program. Goodbye!")
+        print("\nExiting the program. Goodbye!\n")
         break
     else:
-        print("Invalid choice. Please enter a number between 1 and 10.")
+        print("\nInvalid choice. Please enter a number between 1 and 10.\n")
     
