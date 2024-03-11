@@ -1,11 +1,10 @@
-# Using a dictionary to store variables with counters
-variable_dict = {}
+my_list = [1, 2, 3, 4, 5]
 
-# Adding variables with counters
-for i in range(1, 6):
-    variable_name = f"variable_{i}"
-    variable_dict[variable_name] = i * 10
+element_to_remove = 8
 
-# Accessing the variables
-for name, value in variable_dict.items():
-    print(f"{name}: {value}")
+try:
+    my_list.remove(element_to_remove)
+    print(f"Element {element_to_remove} removed from the list")
+    print("Updated list:", my_list)
+except ValueError:
+    print(f"Element {element_to_remove} not found in the list")

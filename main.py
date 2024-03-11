@@ -6,17 +6,16 @@ class menu:
         return self
     
     def __str__(self):
+        menu_list = "\nMenu:\n"
         for i in range(len(self.items)):
-            return f'{i+1}. {self.items[i].name}, {self.items[i].price}, {self.items[i].qnt};'
+            menu_list += f'{i+1}. {self.items[i].name}, {self.items[i].price}, {self.items[i].qnt}; \n'
+        return menu_list
     
     def add(self, item):
         self.items.append(item)
     
     def simple_rem(self, item_r):
-        if isinstance(item_r, item):
-            self.remove(item_r)
-        else:
-            raise TypeError('Not supported variable type')
+        self.items.remove(item_r)
         
 class item:
     def __init__(self, name, price, qnt):
@@ -30,6 +29,15 @@ class item:
     def __str__(self):
         return f'Name: {self.name}, Price: {self.price}, Qnt: {self.qnt}.'
     
+    def __eq__(self, other):
+        if isinstance(other, item):
+            if self.name == other.name and self.price == other.price and self.qnt == other.qnt:
+                return True
+            else:
+                return False
+        else:
+            return False
+    
     def change_name(self, name):
         self.name = name
     def change_price(self, price):
@@ -37,17 +45,21 @@ class item:
     def change_qnt(self, qnt):
         self.qnt = qnt
 
-#filtering: oper_1 - black-/whitelist, oper_2 - by Name/Price/Qnt
 def filtered(menu_obj, filtered_value, oper_1, oper_2):
-    if isinstance(menu_obj, menu) and 0 < oper_2 < 4:
-        if oper_1 == 1:
-            filtered_menu = [d for d in menu_obj if d[oper_2] != filtered_value]
-        elif oper_1 == 2:
-            filtered_menu = [d for d in menu_obj if d[oper_2] == filtered_value]
+    if oper_1 == 1:
+        if oper_2 == 1:
+            filtered_menu = [d for d in menu_obj.items if d.name != filtered_value]
+        elif oper_2 == 2:
+            filtered_menu = [d for d in menu_obj.items if d.price != filtered_value]
         else:
-            raise ValueError('Incorrect operation_1 value')
+            filtered_menu = [d for d in menu_obj.items if d.qnt != filtered_value]
     else:
-        raise Exception('Not supported menu variable type or Incorrect operation_2 value')
+        if oper_2 == 1:
+            filtered_menu = [d for d in menu_obj.items if d.name == filtered_value]
+        elif oper_2 == 2:
+            filtered_menu = [d for d in menu_obj.items if d.price == filtered_value]
+        else:
+            filtered_menu = [d for d in menu_obj.items if d.qnt == filtered_value]
     return filtered_menu
 
 menu_1 = menu()
@@ -134,7 +146,7 @@ while True:
             print("\nSomething went wrong while trying to add an item")
 
     elif choice == "7":
-        print("\n", menu_1)
+        print(menu_1)
     
     elif choice == "8":
         print("Name:")
@@ -159,19 +171,48 @@ while True:
                 print("Invalid input: qnt not a valid int")
 
         item_r = item(dr_name, dr_price, dr_qnt)
+
+        print("Item to remove: ", item_r)
+
+        for i in range(len(menu_1.items)):
+            if menu_1.items[i] == item_r:
+                print("item found")
+                break
+            else:
+                print("item not found")
+        
         try:
             menu_1.simple_rem(item_r)
+            print("item deleted")
         except:
-            print("No such item")
+            print("unable to delete")
 
     elif choice == "9":
-        print("1. Blackilst \n2. Whitelist")
-        oper_1 = input()
-        print("1. Name \n2. Price \n3. Qnt")
-        oper_2 = input()
+        print("\n1. Blackilst \n2. Whitelist\n")
+        while True:
+            try:
+                oper_1 = int(input())
+                if 0 < oper_1 < 3:
+                    break
+                else:
+                    print("Incorrect operation number")
+            except:
+                print("Incorrect operation value type")
+        print("\n1. Name \n2. Price \n3. Qnt\n")
+        while True:
+            try:
+                oper_2 = int(input())
+                if 0 < oper_2 < 4:
+                    break
+                else:
+                    print("Incorrect operation number")
+            except:
+                print("Incorrect operation value type")
         print("Provide filtered value: ")
         filtered_value = input()
-        filtered(menu_1, filtered_value, oper_1, oper_2)
+        filtered_menu = filtered(menu_1, filtered_value, oper_1, oper_2)
+        for i in range(len(filtered_menu)):
+            print(filtered_menu[i])
 
 
     elif choice == "10":
