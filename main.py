@@ -1,5 +1,8 @@
 from datetime import datetime
+from abc import ABC, abstractmethod
 import sqlite3
+import requests
+import re
 
 conn = sqlite3.connect('tavern.db')
 cursor = conn.cursor()
@@ -55,6 +58,169 @@ class db:
     def deleteAllRecords(table_name):
         cursor.execute(f"DELETE FROM {table_name}")
         conn.commit()
+
+class api(ABC):
+    @abstractmethod
+    def get_game(param, value):
+        link_game = "https://www.cheapshark.com/api/1.0/games"
+
+        if param == 1:
+            response = requests.get(link_game, params={"title": value})
+        elif param == 2:
+            response = requests.get(link_game, params={"steamAppID": value})
+        else:
+            print("Incorrect param")
+
+        if response.status_code == 200:
+            games = response.json()
+            for game in games:
+                game_title = game.get('external', 'No title provided')
+                game_id = game.get('gameID', 'No ID provided')
+                steamApp_id = game.get('steamAppID', 'No ID provided')
+                print(f"Title: {game_title}, Game ID: {game_id}, SteamAppID: {steamApp_id}")
+        else:
+            print(f"Failed to fetch data: {response.status_code}, 'N/A'")
+
+    @abstractmethod
+    def game_id_check(value):
+        link_game = "https://www.cheapshark.com/api/1.0/games"
+        response = requests.get(link_game, params={"id": value})
+        if response.status_code == 200:
+            return True
+        else:
+            print(f"Failed to fetch data: {response.status_code}")
+            return False
+    
+    @abstractmethod
+    def get_deal(param, value):
+        link_deal = "https://www.cheapshark.com/api/1.0/deals"
+
+        if param == 1:
+            response = requests.get(link_deal, params={"title": value})
+            if response.status_code == 200:
+                deals = response.json()
+                game_title = deals[0].get('title', 'No title provided')
+                game_id = deals[0].get('gameID', 'No ID provided')
+                store_id = deals[0].get('storeID', 'No ID provided')
+                if store_id == "1":
+                    steamApp_id = deals[0].get('steamAppID', 'No ID provided')
+                    steam_rating = deals[0].get('steamRatingText', 'No rating provided')
+                    print(f"\nTitle: {game_title} \nGame ID: {game_id} \nSteamAppID: {steamApp_id} \nSteam rating: {steam_rating}")
+                else:
+                    print(f"\nTitle: {game_title} \nGame ID: {game_id}")
+
+                for game in deals:
+                    on_sale = game.get('isOnSale', 'No status provided')
+                    store_id = game.get('storeID', 'No ID provided')
+                    store_name = api.get_store(store_id)
+                    sale_price = game.get('salePrice', 'No price provided')
+                    normal_price = game.get('normalPrice', 'No price provided')
+                    if on_sale == "1":
+                        print(f"\nStore: {store_name[0]} \nSale price: {sale_price} \nNormal price: {normal_price}")
+            else:
+                print(f"Failed to fetch data: {response.status_code}, 'N/A'")
+
+        elif param == 2:
+            response = requests.get(link_deal, params={"upperPrice": value})
+            if response.status_code == 200:
+                deals = response.json()
+                for game in deals:
+                    game_title = game.get('title', 'No title provided')
+                    game_id = game.get('gameID', 'No ID provided')
+                    store_id = game.get('storeID', 'No ID provided')
+                    on_sale = game.get('isOnSale', 'No status provided')
+                    store_id = game.get('storeID', 'No ID provided')
+                    store_name = api.get_store(store_id)
+                    sale_price = game.get('salePrice', 'No price provided')
+                    normal_price = game.get('normalPrice', 'No price provided')
+                    if on_sale == "1":
+                        if store_id == "1":
+                            steamApp_id = deals[0].get('steamAppID', 'No ID provided')
+                            steam_rating = deals[0].get('steamRatingText', 'No rating provided')
+                            print(f"Title: {game_title}, Game ID: {game_id}, SteamAppID: {steamApp_id}, Steam rating: {steam_rating}, Store: {store_name[0]}, Sale price: {sale_price}, \nNormal price: {normal_price};")
+                        else:
+                            print(f"Title: {game_title}, Game ID: {game_id}, Store: {store_name[0]}, Sale price: {sale_price}, Normal price: {normal_price};")
+            else:
+                print(f"Failed to fetch data: {response.status_code}, 'N/A'")
+
+        elif param == 3:
+            response = requests.get(link_deal, params={"lowerPrice": value})
+            if response.status_code == 200:
+                deals = response.json()
+                for game in deals:
+                    game_title = game.get('title', 'No title provided')
+                    game_id = game.get('gameID', 'No ID provided')
+                    store_id = game.get('storeID', 'No ID provided')
+                    on_sale = game.get('isOnSale', 'No status provided')
+                    store_id = game.get('storeID', 'No ID provided')
+                    store_name = api.get_store(store_id)
+                    sale_price = game.get('salePrice', 'No price provided')
+                    normal_price = game.get('normalPrice', 'No price provided')
+                    if on_sale == "1":
+                        if store_id == "1":
+                            steamApp_id = deals[0].get('steamAppID', 'No ID provided')
+                            steam_rating = deals[0].get('steamRatingText', 'No rating provided')
+                            print(f"Title: {game_title}, Game ID: {game_id}, SteamAppID: {steamApp_id}, Steam rating: {steam_rating}, Store: {store_name[0]}, Sale price: {sale_price}, \nNormal price: {normal_price};")
+                        else:
+                            print(f"Title: {game_title}, Game ID: {game_id}, Store: {store_name[0]}, Sale price: {sale_price}, Normal price: {normal_price};")
+            else:
+                print(f"Failed to fetch data: {response.status_code}, 'N/A'")
+        
+        elif param == 4:
+            response = requests.get(link_deal)
+            if response.status_code == 200:
+                deals = response.json()
+                for game in deals:
+                    game_title = game.get('title', 'No title provided')
+                    game_id = game.get('gameID', 'No ID provided')
+                    store_id = game.get('storeID', 'No ID provided')
+                    on_sale = game.get('isOnSale', 'No status provided')
+                    store_id = game.get('storeID', 'No ID provided')
+                    store_name = api.get_store(store_id)
+                    sale_price = game.get('salePrice', 'No price provided')
+                    normal_price = game.get('normalPrice', 'No price provided')
+                    if on_sale == "1":
+                        if store_id == "1":
+                            steamApp_id = deals[0].get('steamAppID', 'No ID provided')
+                            steam_rating = deals[0].get('steamRatingText', 'No rating provided')
+                            print(f"Title: {game_title}, Game ID: {game_id}, SteamAppID: {steamApp_id}, Steam rating: {steam_rating}, Store: {store_name[0]}, Sale price: {sale_price}, \nNormal price: {normal_price};")
+                        else:
+                            print(f"Title: {game_title}, Game ID: {game_id}, Store: {store_name[0]}, Sale price: {sale_price}, Normal price: {normal_price};")
+            else:
+                print(f"Failed to fetch data: {response.status_code}, 'N/A'")
+
+        else:
+            print("Incorrect param")
+
+    @abstractmethod
+    def get_store(store_id=None):
+        if store_id != None:
+            link_store = "https://www.cheapshark.com/api/1.0/stores"
+            response_store = requests.get(link_store, params={"storeID": store_id})
+            if response_store.status_code == 200:
+                stores = response_store.json()
+                for store in stores:
+                    if str(store.get('storeID')) == str(store_id):
+                        store_name = store.get('storeName', 'No name provided')
+                        store_active = store.get('isActive', 'No status provided')
+                        return [store_name, store_active]
+                return ['Store not found', 'N/A']
+            else:
+                return [f"Failed to fetch data: {response_store.status_code}", 'N/A']
+        else:
+            link_store = "https://www.cheapshark.com/api/1.0/stores"
+            response_store = requests.get(link_store)
+            if response_store.status_code == 200:
+                stores = response_store.json()
+                store_list = []
+                for store in stores:
+                    store_name = store.get('storeName', 'No name provided')
+                    store_active = store.get('isActive', 'No status provided')
+                    store_list.append([store_name, store_active])
+                return store_list
+            else:
+                return [f"Failed to fetch data: {response_store.status_code}", 'N/A']
+
 
 
 class menu:
@@ -483,7 +649,7 @@ def change_bin_db(customer_id):
 
 
 def show_menu():
-    print("""1. Create item 
+    print("""\n1. Create item 
 2. Show current item 
 3. Change current item 
 4. Add current item to the menu 
@@ -505,13 +671,18 @@ def show_menu():
 17. Edit customer's bin on the list 
 18. Show customer's details on the list 
 19. Clear customer list 
+          
+20. Find game
+21. Find deal
+22. Show stores
+23. Add game to customer's bin
 
 x. Exit \n""")
 
 
 while True:
     show_menu()
-    choice = input("Enter your choice (1-19 or x): ")
+    choice = input("Enter your choice (1-23 or x): ")
 
     if choice == "1":
         print("Name:")
@@ -872,11 +1043,85 @@ while True:
             else:
                 print("\nInvalid input. Returning to main menu...\n")
 
+    elif choice == "20":
+        print("Find game by: \n1. Title \n2. SteamAppID \n3. Upper price \n4. Lower price \nEnter your choice: ")
+        choice_find_game = input()
+        try:
+            choice_find_game = int(choice_find_game)
+        except ValueError:
+            print("That's not a valid number")
+
+        if choice_find_game == 1:
+            print("Enter game title:")
+            title = input()
+            title = re.sub(r'[^a-zA-Z0-9]', '', title)
+            api.get_game(choice_find_game, title)
+        elif choice_find_game == 2:
+            print("Enter game SteamAppID:")
+            steamAppID = input()
+            api.get_game(choice_find_game, steamAppID)
+        else:
+            print("Incorrect option")
+
+    elif choice == "21":
+        print("Find game by: \n1. Title \n2. Upper price \n3. Lower price \n4. Show all \nEnter your choice: ")
+        choice_find_game = input()
+        try:
+            choice_find_game = int(choice_find_game)
+        except ValueError:
+            print("That's not a valid number")
+        
+        if choice_find_game == 1:
+            print("Enter game title:")
+            title = input()
+            title = re.sub(r'[^a-zA-Z0-9]', '', title)
+            api.get_deal(choice_find_game, title)
+        elif choice_find_game == 2:
+            print("Enter upper price:")
+            upper_price = input()
+            api.get_deal(choice_find_game, upper_price)
+        elif choice_find_game == 3:
+            print("Enter lower price:")
+            lower_price = input()
+            api.get_deal(choice_find_game, lower_price)
+        elif choice_find_game == 4:
+            api.get_deal(choice_find_game, 0)
+
+    elif choice == "22":
+        store_list = api.get_store()
+        for i in range(len(store_list)):
+            print(f"{store_list[i][0]}, {'Active' if store_list[i][1] == 1 else 'Inactive'}")
+        
+    elif choice == "23":
+        if db.isEmpty("customer_list"):
+            print("List is empty...")
+        else:
+            print("Username:")
+            cus_username = input()
+            find_cus = customer_list.findCustomerName(
+                cus_username)
+            if find_cus:
+                print("\nCustomer found\n")
+                print("Enter game ID:")
+                game_id = input()
+                if api.game_id_check(game_id) == True:
+                    print("Enter qnt:")
+                    game_qnt = input()
+                    try:
+                        customer.addBin(find_cus[0][0], game_id, game_qnt)
+                        print("Game added successfully")
+                    except:
+                        print("Something went wrong while trying to add game...")
+                else:
+                    print("Game not found")
+            else:
+                print("\nCustomer not found\n")
+
     elif choice == "x":
         print("\nExiting the program. Goodbye!\n")
         break
     else:
-        print("\nInvalid choice. Please enter a number between 1 and 19 or x.\n")
+        print("\nInvalid choice. Please enter a number between 1 and 23 or x.\n")
 
 try:
     cursor.close()
