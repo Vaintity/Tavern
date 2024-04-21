@@ -1,5 +1,12 @@
 from datetime import datetime
 from abc import ABC, abstractmethod
+from PyQt5.QtWidgets import (QApplication, QMainWindow, QStatusBar, QTextEdit, QFileDialog,
+                             QLabel, QWidget, QHBoxLayout, QPushButton, QLineEdit,
+                             QRadioButton, QGridLayout, QFormLayout, QAction, QDialog, 
+                             QMenuBar, QTabWidget, QVBoxLayout, QTableWidget, QTableWidgetItem, 
+                             QMessageBox)
+from PyQt5.QtCore import Qt
+import sys
 import sqlite3
 import requests
 import re
@@ -221,6 +228,419 @@ class api(ABC):
             else:
                 return [f"Failed to fetch data: {response_store.status_code}", 'N/A']
 
+class MainWindow(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Tavern Management System")
+        self.setGeometry(100, 100, 800, 600)
+
+        quit = QAction("Quit", self)
+        quit.triggered.connect(self.closeEvent)
+
+        self.create_menu_bar()
+        self.status_bar = QStatusBar()
+        self.setStatusBar(self.status_bar)
+
+        self.tab_widget = QTabWidget()
+        self.setCentralWidget(self.tab_widget)
+
+        self.menu_management_tab = MenuManagement()
+        self.customer_management_tab = CustomerManagement()
+        self.api_interaction_tab = QWidget()
+
+        self.tab_widget.addTab(self.menu_management_tab, "Menu Management")
+        self.tab_widget.addTab(self.customer_management_tab, "Customer Management")
+        self.tab_widget.addTab(self.api_interaction_tab, "API Interactions")
+
+        self.init_ui()
+
+    def create_menu_bar(self):
+        menu_bar = QMenuBar()
+        self.setMenuBar(menu_bar)
+
+        file_menu = menu_bar.addMenu('File')
+        edit_menu = menu_bar.addMenu('Edit')
+        api_menu = menu_bar.addMenu('API')
+
+    def init_ui(self):
+        # Initialize UI components for each tab
+        self.init_api_interaction_ui()
+
+    def init_api_interaction_ui(self):
+        layout = QVBoxLayout()
+        layout.addWidget(QLabel("API Interaction Panel"))
+        self.api_interaction_tab.setLayout(layout)
+
+    def closeEvent(self, event):
+        try:
+            cursor.close()
+            conn.close()
+            print("Cursor and connection closed successfully")
+        except:
+            print("Something went wrong while closing cursor and connection")
+        event.accept()
+
+class MenuManagement(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.init_ui()
+
+    def init_ui(self):
+        # Layout for the whole widget
+        layout = QVBoxLayout()
+
+        # Table for displaying menu items
+        self.table = QTableWidget()
+        self.table.setColumnCount(4)
+        self.table.setHorizontalHeaderLabels(["Item ID", "Name", "Price", "Quantity"])
+        self.table.setEditTriggers(QTableWidget.NoEditTriggers)
+        self.load_menu_items()  # This would be a method that loads items from the database into the table
+
+        self.search_field = QLineEdit()
+        self.search_field.setPlaceholderText("Enter item name to find")
+        self.search_button = QPushButton("Find")
+        self.search_button.clicked.connect(self.find_item)  # Connect button to find functionality
+
+        search_layout = QHBoxLayout()  # Horizontal layout for search
+        search_layout.addWidget(self.search_field)
+        search_layout.addWidget(self.search_button)
+
+        # Buttons for adding, editing, and deleting items
+        self.add_button = QPushButton("Add Item")
+        self.edit_button = QPushButton("Edit Item")
+        self.delete_button = QPushButton("Delete Item")
+
+        self.add_button.clicked.connect(self.add_item)
+        self.edit_button.clicked.connect(self.edit_item)
+        self.delete_button.clicked.connect(self.delete_item)
+
+        # Horizontal layout for buttons
+        button_layout = QHBoxLayout()
+        button_layout.addWidget(self.add_button)
+        button_layout.addWidget(self.edit_button)
+        button_layout.addWidget(self.delete_button)
+
+        # Add widgets to the main layout
+        layout.addLayout(search_layout)
+        layout.addWidget(self.table)
+        layout.addLayout(button_layout)
+        self.setLayout(layout)
+
+    def load_menu_items(self):
+        fetch_menu_query = "SELECT * FROM menu;"
+        cursor.execute(fetch_menu_query)
+        fetched = cursor.fetchall()
+        self.table.setRowCount(len(fetched))
+        for i in range(len(fetched)):
+            self.table.setItem(i, 0, QTableWidgetItem(str(fetched[i][0])))
+            self.table.setItem(i, 1, QTableWidgetItem(fetched[i][1]))
+            self.table.setItem(i, 2, QTableWidgetItem(str(fetched[i][2])))
+            self.table.setItem(i, 3, QTableWidgetItem(str(fetched[i][3])))
+
+    def find_item(self):
+        search_term = self.search_field.text().strip()  # Get and clean search term
+        if not search_term:
+            self.load_menu_items()  # If no search term, load all items
+            return
+        
+        query = "SELECT * FROM menu WHERE LOWER(name) LIKE ?"
+        cursor.execute(query, ('%' + search_term.lower() + '%',))  # Wildcard for partial matches
+
+        results = cursor.fetchall()  # Fetch the results
+        self.table.setRowCount(len(results))
+        for i, row in enumerate(results):
+            self.table.setItem(i, 0, QTableWidgetItem(str(row[0])))  # Item ID
+            self.table.setItem(i, 1, QTableWidgetItem(row[1]))  # Name
+            self.table.setItem(i, 2, QTableWidgetItem(str(row[2])))  # Price
+            self.table.setItem(i, 3, QTableWidgetItem(str(row[3])))  # Quantity
+
+    def add_item(self):
+        dialog = ItemDialog()
+        if dialog.exec() == QDialog.Accepted:
+            item_data = dialog.get_data()
+            name = item_data['name']
+            price = item_data['price']
+            quantity = item_data['quantity']
+            if name and price and quantity:  # Validate that fields are not empty
+                try:
+                    price = float(price)  # Ensure that price can be converted to float
+                    quantity = int(quantity)  # Ensure that quantity can be converted to int
+                    if price >= 0 and quantity >= 0:  # Additional validation checks
+                        if menu.findItemName(name):
+                            QMessageBox.warning(self, "Invalid Input", "Item with the same name is already on the menu.")
+                        else:
+                            menu.addItem(name, price, quantity)  # Add item to the database
+                            self.load_menu_items()  # Refresh the menu items in the table
+                    else:
+                        QMessageBox.warning(self, "Invalid Input", "Price and quantity must be non-negative.")
+                except ValueError as e:
+                    QMessageBox.warning(self, "Invalid Input", "Price and quantity need to be numeric.")
+            else:
+                QMessageBox.warning(self, "Invalid Input", "All fields are required.")
+
+    def edit_item(self):
+        row = self.table.currentRow()
+        if row != -1:  # Check if any row is selected
+            item_id = self.table.item(row, 0).text()
+            name = self.table.item(row, 1).text()
+            price = self.table.item(row, 2).text()
+            quantity = self.table.item(row, 3).text()
+
+            dialog = ItemDialog(item_id, name, price, quantity)
+            if dialog.exec() == QDialog.Accepted:
+                item_data = dialog.get_data()
+                name = item_data['name']
+                price = item_data['price']
+                quantity = item_data['quantity']
+                if name and price and quantity:  # Validate that fields are not empty
+                    try:
+                        price = float(price)  # Ensure that price can be converted to float
+                        quantity = int(quantity)  # Ensure that quantity can be converted to int
+                        if price >= 0 and quantity >= 0:  # Additional validation checks
+                            menu.updateItem(item_id, name, price, quantity)  # Update item in the database
+                            self.load_menu_items()  # Refresh the menu items in the table
+                        else:
+                            QMessageBox.warning(self, "Invalid Input", "Price and quantity must be non-negative.")
+                    except ValueError as e:
+                        QMessageBox.warning(self, "Invalid Input", "Price and quantity need to be numeric.")
+                else:
+                    QMessageBox.warning(self, "Invalid Input", "All fields are required.")
+        else:
+            QMessageBox.warning(self, "Selection Required", "Please select an item to edit.")
+
+    def delete_item(self):
+        row = self.table.currentRow()
+        if row != -1:  # Ensure there is a row selected
+            item_id = self.table.item(row, 0).text()  # Get the item_id from the first column
+            response = QMessageBox.question(self, 'Confirm Deletion',
+                                            "Are you sure you want to delete this item?",
+                                            QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+            if response == QMessageBox.Yes:
+                try:
+                    menu.removeItem(item_id)  # Call the method to remove the item from the database
+                    self.load_menu_items()  # Refresh the table to reflect the changes
+                    QMessageBox.information(self, "Success", "Item has been deleted successfully.")
+                except Exception as e:
+                    QMessageBox.warning(self, "Error", f"Failed to delete item: {str(e)}")
+            else:
+                QMessageBox.information(self, "Cancelled", "Item deletion cancelled.")
+        else:
+            QMessageBox.warning(self, "Selection Required", "Please select an item to delete.")
+
+
+class ItemDialog(QDialog):
+    def __init__(self, item_id=None, name="", price="", qnt="", parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Item Details")
+        self.layout = QFormLayout(self)
+
+        self.name_edit = QLineEdit(name)
+        self.price_edit = QLineEdit(price)
+        self.qnt_edit = QLineEdit(qnt)
+
+        self.layout.addRow(QLabel("Name:"), self.name_edit)
+        self.layout.addRow(QLabel("Price:"), self.price_edit)
+        self.layout.addRow(QLabel("Quantity:"), self.qnt_edit)
+
+        # Buttons
+        self.ok_button = QPushButton("OK")
+        self.cancel_button = QPushButton("Cancel")
+        self.ok_button.clicked.connect(self.accept)
+        self.cancel_button.clicked.connect(self.reject)
+
+        button_layout = QHBoxLayout()
+        button_layout.addWidget(self.ok_button)
+        button_layout.addWidget(self.cancel_button)
+        self.layout.addRow(button_layout)
+
+    def get_data(self):
+        return {
+            "name": self.name_edit.text(),
+            "price": self.price_edit.text(),
+            "quantity": self.qnt_edit.text()
+        }
+
+class CustomerManagement(QWidget):
+    def __init__(self):
+        super().__init__()
+        self.init_ui()
+
+    def init_ui(self):
+        layout = QVBoxLayout()
+
+        self.table = QTableWidget()
+        self.table.setColumnCount(4)
+        self.table.setHorizontalHeaderLabels(["Customer ID", "Username", "Registration Date", "Edit Bin"])
+        self.table.setEditTriggers(QTableWidget.NoEditTriggers)
+        self.load_customers()
+
+        self.search_field = QLineEdit()
+        self.search_field.setPlaceholderText("Enter customer username to find")
+        self.search_button = QPushButton("Find")
+        self.search_button.clicked.connect(self.find_customer)  # Connect button to find functionality
+
+        search_layout = QHBoxLayout()  # Horizontal layout for search
+        search_layout.addWidget(self.search_field)
+        search_layout.addWidget(self.search_button)
+
+        self.add_button = QPushButton("Add Customer")
+        self.edit_button = QPushButton("Edit Customer")
+        self.delete_button = QPushButton("Delete Customer")
+
+        self.add_button.clicked.connect(self.add_customer)
+        self.edit_button.clicked.connect(self.edit_customer)
+        self.delete_button.clicked.connect(self.delete_customer)
+
+        button_layout = QHBoxLayout()
+        button_layout.addWidget(self.add_button)
+        button_layout.addWidget(self.edit_button)
+        button_layout.addWidget(self.delete_button)
+
+        layout.addLayout(search_layout)
+        layout.addWidget(self.table)
+        layout.addLayout(button_layout)
+        self.setLayout(layout)
+
+    def load_customers(self):
+        fetch_customer_list_query = "SELECT * FROM customer_list;"
+        cursor.execute(fetch_customer_list_query)
+        fetched = cursor.fetchall()
+        self.table.setRowCount(len(fetched))
+        for i, row in enumerate(fetched):
+            self.table.setItem(i, 0, QTableWidgetItem(str(row[0])))
+            self.table.setItem(i, 1, QTableWidgetItem(row[1]))
+            self.table.setItem(i, 2, QTableWidgetItem(str(datetime.fromtimestamp(row[2]).strftime("%d.%m.%Y %H:%M"))))
+
+            cell_widget = ButtonCell()
+            cell_widget.edit_bin_button.clicked.connect(lambda _, cid=row[0]: self.open_bin_editor(cid))
+            self.table.setCellWidget(i, 3, cell_widget)  # Add the button to the fourth column
+
+    def open_bin_editor(self, customer_id):
+        # Open a new window for editing customer's bin
+        bin_window = BinEditWindow(customer_id)
+        bin_window.exec()  # Show as a dialog
+
+    def find_customer(self):
+        search_term = self.search_field.text().strip()
+        if not search_term:
+            self.load_customers()
+            return
+        
+        query = "SELECT * FROM customer_list WHERE LOWER(username) LIKE ?"
+        cursor.execute(query, ('%' + search_term.lower() + '%',))  # Wildcard for partial matches
+
+        results = cursor.fetchall()  # Fetch the results
+        self.table.setRowCount(len(results))
+        for i, row in enumerate(results):
+            self.table.setItem(i, 0, QTableWidgetItem(str(row[0])))
+            self.table.setItem(i, 1, QTableWidgetItem(row[1]))
+            self.table.setItem(i, 2, QTableWidgetItem(str(datetime.fromtimestamp(row[2]).strftime("%d.%m.%Y %H:%M"))))
+
+    def add_customer(self):
+        dialog = CustomerDialog()
+        if dialog.exec() == QDialog.Accepted:
+            customer_data = dialog.get_data()
+            username = customer_data["username"].replace(" ", "")
+            registration_date = datetime.now().timestamp()
+            if username:
+                if customer_list.findCustomerName(username):
+                    QMessageBox.warning(self, "Invalid Input", "Customer with the same username is already on the list.")
+                else:
+                    customer_list.addCustomer(username, registration_date)
+                    self.load_customers()
+
+    def edit_customer(self):
+        row = self.table.currentRow()
+        if row != -1:
+            customer_id = self.table.item(row, 0).text()
+            username = self.table.item(row, 1).text()
+            registration_date = self.table.item(row, 2).text()
+
+            dialog = CustomerDialog(customer_id, username, registration_date)
+            if dialog.exec() == QDialog.Accepted:
+                customer_data = dialog.get_data()
+                username = customer_data['username']
+                if username:
+                    customer_list.updateCustomer(customer_id, username)
+                    self.load_customers()
+                else:
+                    QMessageBox.warning(self, "Invalid Input", "All fields are required.")
+        else:
+            QMessageBox.warning(self, "Selection Required", "Please select an item to edit.")
+
+    def delete_customer(self):
+        row = self.table.currentRow()
+        if row != -1:
+            customer_id = self.table.item(row, 0).text()
+            response = QMessageBox.question(self, 'Confirm Deletion',
+                                            "Are you sure you want to delete this customer?",
+                                            QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+            if response == QMessageBox.Yes:
+                try:
+                    customer_list.deleteCustomer(customer_id)
+                    self.load_customers()
+                    QMessageBox.information(self, "Success", "Customer has been deleted successfully.")
+                except Exception as e:
+                    QMessageBox.warning(self, "Error", f"Failed to delete customer: {str(e)}")
+            else:
+                QMessageBox.information(self, "Cancelled", "Customer deletion cancelled.")
+        else:
+            QMessageBox.warning(self, "Selection Required", "Please select a customer to delete.")
+
+class CustomerDialog(QDialog):
+    def __init__(self, customer_id=None, username="", registration_date="", parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Customer Details")
+        self.layout = QFormLayout(self)
+
+        self.username_edit = QLineEdit(username)
+        self.layout.addRow(QLabel("Username:"), self.username_edit)
+
+        if customer_id:  # If customer ID is provided, show registration date
+            registration_date_label = QLabel(registration_date)
+            self.layout.addRow("Registration Date:", registration_date_label)
+
+        ok_button = QPushButton("OK")
+        cancel_button = QPushButton("Cancel")
+        ok_button.clicked.connect(self.accept)
+        cancel_button.clicked.connect(self.reject)
+
+        button_layout = QHBoxLayout()
+        button_layout.addWidget(ok_button)
+        button_layout.addWidget(cancel_button)
+        self.layout.addRow(button_layout)
+
+    def get_data(self):
+        return {
+            "username": self.username_edit.text()
+        }
+    
+class BinEditWindow(QDialog):
+    def __init__(self, customer_id):
+        super().__init__()
+        self.customer_id = customer_id
+        self.setWindowTitle("Edit Customer Bin")
+        self.setGeometry(100, 100, 300, 200)
+        
+        layout = QVBoxLayout()
+        
+        self.bin_label = QLabel(f"Editing bin for customer ID: {self.customer_id}")
+        layout.addWidget(self.bin_label)
+
+        # Add more UI elements here for editing bin (e.g., table, input fields, buttons)
+
+        self.setLayout(layout)
+
+class ButtonCell(QWidget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        layout = QHBoxLayout(self)
+        self.edit_bin_button = QPushButton("Edit Bin")
+        self.edit_bin_button.setFixedSize(80, 25)
+        layout.addWidget(self.edit_bin_button, alignment=Qt.AlignCenter)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setAlignment(Qt.AlignCenter)  # Align button in the center
+        self.setLayout(layout)
 
 
 class menu:
@@ -255,17 +675,32 @@ class menu:
 
     @staticmethod
     def updateItem(item_id, name, price, qnt):
-        update_item_query = "UPDATE menu SET name = ?, price = ?, qnt = ? WHERE item_id = ?;"
-        item_data = (name, price, qnt, item_id)
-        cursor.execute(update_item_query, item_data)
-        conn.commit()
+        try:
+            update_item_query = "UPDATE menu SET name = ?, price = ?, qnt = ? WHERE item_id = ?;"
+            item_data = (name, price, qnt, item_id)
+            cursor.execute(update_item_query, item_data)
+            conn.commit()
+            print("Database updated successfully")
+        except Exception as e:
+            print(f"Error updating database: {e}")
 
     @staticmethod
     def removeItem(item_id):
-        delete_item_query = "DELETE FROM menu WHERE item_id = ?;"
-        item_data = (item_id,)
-        cursor.execute(delete_item_query, item_data)
-        conn.commit()
+        try:
+            delete_item_query = "DELETE FROM menu WHERE item_id = ?"
+            cursor.execute(delete_item_query, (item_id,))
+            conn.commit()
+            print("Item removed successfully from the database")
+        except Exception as e:
+            print(f"Error removing item from database: {e}")
+            
+        try:
+            delete_records_query = "DELETE FROM bin WHERE item_id = ?"
+            cursor.execute(delete_records_query, (item_id,))
+            conn.commit()
+            print("\nCorresponding records were removed form the bin.")
+        except:
+            print("\nNo items were removed from the bin.")
 
     def add(self, item):
         self.items.append(item)
@@ -394,14 +829,42 @@ class customer_list:
         cursor.execute(insert_customer_query, customer_data)
         conn.commit()
 
+    @staticmethod
+    def updateCustomer(customer_id, username):
+        try:
+            chan_cus_query = "UPDATE customer_list SET username = ? WHERE customer_id = ?"
+            chan_cus_data = (username, customer_id)
+            cursor.execute(chan_cus_query, chan_cus_data)
+            conn.commit()
+            print("Database updated successfully")
+        except Exception as e:
+            print(f"Error updating database: {e}")
+
+    @staticmethod
+    def deleteCustomer(customer_id):
+        try:
+            del_cus_query = "DELETE FROM customer_list WHERE customer_id = ?"
+            cursor.execute(del_cus_query, (customer_id,))
+            conn.commit()
+            print("Customer deleted")
+        except Exception as e:
+            print(f"Error updating database: {e}")
+
+        try:
+            delete_records_query = "DELETE FROM bin WHERE customer_id = ?"
+            cursor.execute(delete_records_query, (customer_id,))
+            conn.commit()
+            print("Customer's bin deleted")
+        except:
+            print("Customer's bin is empty")
+
     def add(self, customer):
         self.customers.append(customer)
 
     @staticmethod
     def findCustomerName(username):
-        find_customer_query = "SELECT * FROM customer_list WHERE username = ?;"
-        customer_data = (username,)
-        cursor.execute(find_customer_query, customer_data)
+        find_customer_query = "SELECT * FROM customer_list WHERE username = ?"
+        cursor.execute(find_customer_query, (username,))
         found = cursor.fetchall()
         return found
 
@@ -679,6 +1142,11 @@ def show_menu():
 
 x. Exit \n""")
 
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    main_window = MainWindow()
+    main_window.show()
+    sys.exit(app.exec_())
 
 while True:
     show_menu()
@@ -788,15 +1256,6 @@ while True:
                 try:
                     menu.removeItem(item_f[0][0])
                     print("\nItem was removed successfully\n")
-
-                    try:
-                        cursor.execute(
-                            f"DELETE FROM bin WHERE item_id = {item_f[0][0]};")
-                        conn.commit()
-                        print("\nCorresponding records were removed form the bin.\n")
-                    except:
-                        print("\nNo items were removed from the bin.")
-
                 except:
                     print("\nSomething went wrong while trying to remove an item\n")
             else:
@@ -945,25 +1404,7 @@ while True:
         else:
             print("Username:")
             cr_username = input()
-            try:
-                cr = customer_list.findCustomerName(cr_username)
-                print("Customer found.")
-                try:
-                    cursor.execute(
-                        f"DELETE FROM bin WHERE customer_id = {cr[0][0]};")
-                    conn.commit()
-                    print("Customer's bin deleted")
-                except:
-                    print("Customer's bin is empty")
-                try:
-                    cursor.execute(
-                        f"DELETE FROM customer_list WHERE customer_id = {cr[0][0]};")
-                    conn.commit()
-                    print("Customer deleted\n")
-                except:
-                    print("Error: can't delete\n")
-            except:
-                print("Customer not found\n")
+            customer_list.deleteCustomer(cr_username)
 
     elif choice == "16":
         if db.isEmpty("customer_list"):
@@ -977,13 +1418,7 @@ while True:
                 find_chan_cus = customer_list.findCustomerName(
                     find_chan_cus_username)
                 print("Customer found.")
-                try:
-                    chan_cus_query = "UPDATE customer_list SET username = ? WHERE customer_id = ?"
-                    chan_cus_data = (chan_username, find_chan_cus[0][0])
-                    cursor.execute(chan_cus_query, chan_cus_data)
-                    conn.commit()
-                except:
-                    print("\nError: unable to update.\n")
+                customer_list.updateCustomer(find_chan_cus[0][0], chan_username)
             except:
                 print("Customer not found\n")
 
