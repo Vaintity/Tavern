@@ -45,6 +45,17 @@ CREATE TABLE IF NOT EXISTS bin (
 '''
 cursor.execute(ctq_bin)
 
+ctq_bin_external = '''
+CREATE TABLE IF NOT EXISTS bin_external (
+    bin_id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    customer_id INTEGER NOT NULL,
+    item_id INTEGER NOT NULL,
+    qnt INTEGER NOT NULL,
+    FOREIGN KEY (customer_id) REFERENCES customer_list(customer_id)
+);
+'''
+cursor.execute(ctq_bin_external)
+
 conn.commit()
 
 
@@ -97,6 +108,26 @@ class api(ABC):
         else:
             print(f"Failed to fetch data: {response.status_code}")
             return False
+        
+    @abstractmethod
+    def game_id_show(value):
+        link_game = "https://www.cheapshark.com/api/1.0/games"
+        response = requests.get(link_game, params={"id": value})
+        if response.status_code == 200:
+            data = response.json()
+            title = data['info']['title']
+            steamAppID = data['info']['steamAppID']
+            cheapest_price = data['cheapestPriceEver']['price']
+            cheapest_date = data['cheapestPriceEver']['date']
+            print("Game Title:", title)
+            print("Steam App ID:", steamAppID)
+            print("Cheapest Price Ever:", cheapest_price)
+            print("Date of Cheapest Price:", cheapest_date)
+            print("\nDeals:")
+            for deal in data['deals']:
+                print(f"Store: {api.get_store(deal['storeID'])[0]}, Price: {deal['price']}, Savings: {deal['savings']}")
+        else:
+            print(f"Failed to fetch data: {response.status_code}, 'N/A'")
     
     @abstractmethod
     def get_deal(param, value):
@@ -543,7 +574,7 @@ class CustomerManagement(QWidget):
             username = customer_data["username"].replace(" ", "")
             registration_date = datetime.now().timestamp()
             if username:
-                if customer_list.findCustomerName(username):
+                if customer_list.find_customer_by_username(username):
                     QMessageBox.warning(self, "Invalid Input", "Customer with the same username is already on the list.")
                 else:
                     customer_list.addCustomer(username, registration_date)
@@ -773,8 +804,23 @@ class customer:
         conn.commit()
 
     @staticmethod
+    def addBin_external(customer_id, item_id, qnt):
+        insert_bin_query = "INSERT INTO bin_external (customer_id, item_id, qnt) VALUES (?, ?, ?);"
+        bin_data = (customer_id, item_id, qnt)
+        cursor.execute(insert_bin_query, bin_data)
+        conn.commit()
+
+    @staticmethod
     def checkBin(customer_id):
         find_customer_query = "SELECT * FROM bin WHERE customer_id = ?;"
+        customer_data = (customer_id,)
+        cursor.execute(find_customer_query, customer_data)
+        found = cursor.fetchall()
+        return found
+    
+    @staticmethod
+    def checkBin_api(customer_id):
+        find_customer_query = "SELECT * FROM bin_external WHERE customer_id = ?;"
         customer_data = (customer_id,)
         cursor.execute(find_customer_query, customer_data)
         found = cursor.fetchall()
@@ -794,6 +840,17 @@ class customer:
                 for i in range(len(customer_bin)):
                     cus_bin_text += f"{i+1}. {menu_used.items[customer_bin[i][2] - 1].name}, price: {menu_used.items[customer_bin[i][2] - 1].price}, quantity: {customer_bin[i][3]} \n"
                 return cus_bin_text
+            
+    @staticmethod
+    def show_bin_api(customer_id):
+        customer_bin = customer.checkBin_api(customer_id)
+        if not customer_bin:
+            return "Bin is empty..."
+        else:
+            cus_bin_text = ""
+            for i in range(len(customer_bin)):
+                print(f"{i+1}. Quantity: {customer_bin[i][3]}, details:")
+                api.game_id_show(customer_bin[i][2])
 
     def change_name(self, name):
         self.username = name
@@ -862,7 +919,7 @@ class customer_list:
         self.customers.append(customer)
 
     @staticmethod
-    def findCustomerName(username):
+    def find_customer_by_username(username):
         find_customer_query = "SELECT * FROM customer_list WHERE username = ?"
         cursor.execute(find_customer_query, (username,))
         found = cursor.fetchall()
@@ -1110,6 +1167,125 @@ def change_bin_db(customer_id):
         else:
             print("\nInvalid choice. Please enter a number between 1 and 4.\n")
 
+def change_bin_api(customer_id):
+    while True:
+        print("1. Add new item to the bin \n2. Change qnt of an item in the bin \n3. Delete item from the bin \n4. Back")
+        choice_chan_bin = input()
+
+        if choice_chan_bin == "1":
+
+            print("Enter game ID:")
+            game_id = input()
+            if api.game_id_check(game_id) == True:
+                print("Enter qnt:")
+                game_qnt = input()
+                try:
+                    customer.addBin_external(find_cus[0][0], game_id, game_qnt)
+                    print("Game added successfully")
+                except:
+                    print("Something went wrong while trying to add game...")
+            else:
+                print("Game not found")
+
+        elif choice_chan_bin == "2":
+
+            customer_bin = customer.checkBin_api(customer_id)
+            if not customer_bin:
+                print("Bin is empty...")
+            else:
+
+                print(
+                    f"Items currently in the bin: \n")
+                customer.show_bin_api(customer_id)
+                print("Quantity of what item to change? (provide item number): ")
+                choice_it_bin_chan = input()
+                choice_it_bin_chan = int(choice_it_bin_chan)
+                choice_it_bin_chan -= 1
+
+                try:
+                    if 0 <= choice_it_bin_chan <= len(customer_bin):
+
+                        print("Enter new quantity: ")
+                        new_qnt = input()
+                        try:
+                            new_qnt = int(new_qnt)
+
+                            if 0 < new_qnt:
+
+                                update_qnt_bin_query = "UPDATE bin_external SET qnt = ? WHERE bin_id = ?"
+                                update_qnt_bin_data = (
+                                    new_qnt, customer_bin[choice_it_bin_chan][0])
+                                cursor.execute(
+                                    update_qnt_bin_query, update_qnt_bin_data)
+                                conn.commit()
+
+                            elif new_qnt == 0:
+
+                                delete_from_bin_query = "DELETE FROM bin_external WHERE bin_id = ?"
+                                delete_from_bin_data = (
+                                    customer_bin[choice_it_bin_chan][0],)
+                                cursor.execute(
+                                    delete_from_bin_query, delete_from_bin_data)
+                                conn.commit()
+
+                                print("Item has been removed from the bin")
+
+                            else:
+                                print("\nqnt can't be negative\n")
+
+                        except ValueError:
+                            print("\nInvalid input: qnt not a valid int\n")
+                    else:
+                        print("There is no item under that number")
+                except:
+                    print("Item number must be a number and must be in the bin")
+
+        elif choice_chan_bin == "3":
+
+            customer_bin = customer.checkBin_api(customer_id)
+            if not customer_bin:
+                print("Bin is empty...")
+            else:
+
+                print(
+                    f"Items currently in the bin: \n")
+                customer.show_bin_api(customer_id)
+                print("What item to delete? (provide item number): ")
+                choice_it_bin_del = input()
+
+                try:
+                    choice_it_bin_del = int(choice_it_bin_del)
+                    choice_it_bin_del -= 1
+
+                    if 0 <= choice_it_bin_del <= len(customer_bin):
+
+                        delete_from_bin_query = "DELETE FROM bin WHERE bin_id = ?"
+                        delete_from_bin_data = (
+                            customer_bin[choice_it_bin_del][0],)
+                        cursor.execute(delete_from_bin_query,
+                                       delete_from_bin_data)
+                        conn.commit()
+
+                        print("Item has been removed from the bin")
+
+                    else:
+                        print("There is no item under that number")
+                except:
+                    print("Item number must be a number and must be in the bin")
+
+        elif choice_chan_bin == "4":
+            break
+
+        else:
+            print("\nInvalid choice. Please enter a number between 1 and 4.\n")
+
+if __name__ == "__main__":
+    app = QApplication(sys.argv)
+    main_window = MainWindow()
+    main_window.show()
+    sys.exit(app.exec_())
+
+
 
 def show_menu():
     print("""\n1. Create item 
@@ -1138,19 +1314,14 @@ def show_menu():
 20. Find game
 21. Find deal
 22. Show stores
-23. Add game to customer's bin
+23. Edit customer's bin with external (api) games
+24. Show customer's bin with external (api) games
 
 x. Exit \n""")
 
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    main_window = MainWindow()
-    main_window.show()
-    sys.exit(app.exec_())
-
 while True:
     show_menu()
-    choice = input("Enter your choice (1-23 or x): ")
+    choice = input("Enter your choice (1-24 or x): ")
 
     if choice == "1":
         print("Name:")
@@ -1374,7 +1545,7 @@ while True:
 
     elif choice == "13":
         try:
-            if customer_list.findCustomerName(customer_1.username):
+            if customer_list.find_customer_by_username(customer_1.username):
                 print("Customer with this username is already on the list")
             else:
                 try:
@@ -1415,7 +1586,7 @@ while True:
             print("Provide new username:")
             chan_username = input()
             try:
-                find_chan_cus = customer_list.findCustomerName(
+                find_chan_cus = customer_list.find_customer_by_username(
                     find_chan_cus_username)
                 print("Customer found.")
                 customer_list.updateCustomer(find_chan_cus[0][0], chan_username)
@@ -1428,7 +1599,7 @@ while True:
         else:
             print("Username:")
             chan_bin_cus_username = input()
-            chan_bin_cus = customer_list.findCustomerName(
+            chan_bin_cus = customer_list.find_customer_by_username(
                 chan_bin_cus_username)
             if chan_bin_cus:
                 print("\nCustomer found\n")
@@ -1442,13 +1613,13 @@ while True:
         else:
             print("Username:")
             show_cus_username = input()
-            try:
-                show_cus = customer_list.findCustomerName(show_cus_username)
+            show_cus = customer_list.find_customer_by_username(show_cus_username)
+            if show_cus:
                 print(
                     f'Username: {show_cus[0][1]} \nRegistration date: {datetime.fromtimestamp(show_cus[0][2]).strftime("%d.%m.%Y %H:%M")}')
                 print(
                     f"Items currently in the bin: \n{customer.show_bin_db(show_cus[0][0])} \n")
-            except:
+            else:
                 print("\nCustomer not found\n")
 
     elif choice == "19":
@@ -1471,6 +1642,8 @@ while True:
 
                 db.deleteAllRecords("bin")
                 print("\nBin was cleared")
+                db.deleteAllRecords("bin_external")
+                print("\nExternal bin was cleared")
                 db.deleteAllRecords("customer_list")
                 print("\nCustomer list was cleared")
             elif choice_clear == "n":
@@ -1479,7 +1652,7 @@ while True:
                 print("\nInvalid input. Returning to main menu...\n")
 
     elif choice == "20":
-        print("Find game by: \n1. Title \n2. SteamAppID \n3. Upper price \n4. Lower price \nEnter your choice: ")
+        print("Find game by: \n1. Title \n2. SteamAppID \nEnter your choice: ")
         choice_find_game = input()
         try:
             choice_find_game = int(choice_find_game)
@@ -1533,22 +1706,27 @@ while True:
         else:
             print("Username:")
             cus_username = input()
-            find_cus = customer_list.findCustomerName(
+            find_cus = customer_list.find_customer_by_username(
                 cus_username)
             if find_cus:
                 print("\nCustomer found\n")
-                print("Enter game ID:")
-                game_id = input()
-                if api.game_id_check(game_id) == True:
-                    print("Enter qnt:")
-                    game_qnt = input()
-                    try:
-                        customer.addBin(find_cus[0][0], game_id, game_qnt)
-                        print("Game added successfully")
-                    except:
-                        print("Something went wrong while trying to add game...")
-                else:
-                    print("Game not found")
+                change_bin_api(find_cus[0][0])
+            else:
+                print("\nCustomer not found\n")
+
+    elif choice == "24":
+        if db.isEmpty("customer_list"):
+            print("List is empty...")
+        else:
+            print("Username:")
+            show_cus_username = input()
+            show_cus = customer_list.find_customer_by_username(show_cus_username)
+            if show_cus:
+                print(
+                    f'Username: {show_cus[0][1]}')
+                print(
+                    f"Items currently in the bin: \n")
+                customer.show_bin_api(show_cus[0][0])
             else:
                 print("\nCustomer not found\n")
 
@@ -1556,7 +1734,7 @@ while True:
         print("\nExiting the program. Goodbye!\n")
         break
     else:
-        print("\nInvalid choice. Please enter a number between 1 and 23 or x.\n")
+        print("\nInvalid choice. Please enter a number between 1 and 24 or x.\n")
 
 try:
     cursor.close()
