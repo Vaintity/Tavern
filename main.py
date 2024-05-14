@@ -1,11 +1,10 @@
 from datetime import datetime
 from abc import ABC, abstractmethod
-from PyQt5.QtWidgets import (QApplication, QMainWindow, QStatusBar, QTextEdit, QFileDialog,
-                             QLabel, QWidget, QHBoxLayout, QPushButton, QLineEdit,
-                             QRadioButton, QGridLayout, QFormLayout, QAction, QDialog,
-                             QMenuBar, QTabWidget, QVBoxLayout, QTableWidget, QTableWidgetItem,
+from PyQt5.QtWidgets import (QApplication, QMainWindow, QStatusBar, QLabel, QWidget,
+                             QHBoxLayout, QPushButton, QLineEdit, QFormLayout, QAction, QDialog,
+                             QTabWidget, QVBoxLayout, QTableWidget, QTableWidgetItem,
                              QMessageBox, QListWidget, QComboBox, QCheckBox)
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QThread, pyqtSignal, QObject
 import sys
 import sqlite3
 import requests
@@ -170,19 +169,24 @@ class api(ABC):
 
         if param == 1:
             if sale_check == 1:
-                response = requests.get(link_deal, params={"title": value, "onSale": "1"})
+                response = requests.get(
+                    link_deal, params={"title": value, "onSale": "1"})
             else:
                 response = requests.get(link_deal, params={"title": value})
         elif param == 2:
             if sale_check == 1:
-                response = requests.get(link_deal, params={"upperPrice": value, "onSale": "1"})
+                response = requests.get(
+                    link_deal, params={"upperPrice": value, "onSale": "1"})
             else:
-                response = requests.get(link_deal, params={"upperPrice": value})
+                response = requests.get(
+                    link_deal, params={"upperPrice": value})
         elif param == 3:
             if sale_check == 1:
-                response = requests.get(link_deal, params={"lowerPrice": value, "onSale": "1"})
+                response = requests.get(
+                    link_deal, params={"lowerPrice": value, "onSale": "1"})
             else:
-                response = requests.get(link_deal, params={"lowerPrice": value})
+                response = requests.get(
+                    link_deal, params={"lowerPrice": value})
         elif param == 4:
             if sale_check == 1:
                 response = requests.get(link_deal, params={"onSale": "1"})
@@ -252,7 +256,8 @@ class MenuManagement(QWidget):
 
         self.table = QTableWidget()
         self.table.setColumnCount(4)
-        self.table.setHorizontalHeaderLabels(["Item ID", "Name", "Price", "Quantity"])
+        self.table.setHorizontalHeaderLabels(
+            ["Item ID", "Name", "Price", "Quantity"])
         self.table.setEditTriggers(QTableWidget.NoEditTriggers)
         self.load_menu_items()
 
@@ -291,7 +296,8 @@ class MenuManagement(QWidget):
         if not search_term:
             cursor.execute("SELECT * FROM menu;")
         else:
-            cursor.execute("SELECT * FROM menu WHERE LOWER(name) LIKE ?", ('%' + search_term + '%',))
+            cursor.execute(
+                "SELECT * FROM menu WHERE LOWER(name) LIKE ?", ('%' + search_term + '%',))
 
         fetched = cursor.fetchall()
         self.populate_table_data(fetched)
@@ -472,7 +478,8 @@ class CustomerManagement(QWidget):
         if not search_term:
             cursor.execute("SELECT * FROM customer_list;")
         else:
-            cursor.execute("SELECT * FROM customer_list WHERE LOWER(username) LIKE ?", ('%' + search_term + '%',))
+            cursor.execute(
+                "SELECT * FROM customer_list WHERE LOWER(username) LIKE ?", ('%' + search_term + '%',))
 
         fetched = cursor.fetchall()
         self.populate_customer_table_data(fetched)
@@ -650,7 +657,7 @@ class BinEditWindow(QDialog):
         edit_button = QPushButton("Edit Item")
         edit_button.clicked.connect(lambda: edit_func(table))
         btn_layout.addWidget(edit_button)
-        
+
         delete_button = QPushButton("Delete Item")
         delete_button.clicked.connect(lambda: delete_func(table))
         btn_layout.addWidget(delete_button)
@@ -692,7 +699,8 @@ class BinEditWindow(QDialog):
             fetched_username = cursor.fetchall()
             table.setItem(i, 2, QTableWidgetItem(fetched_username[0][0]))
             table.setItem(i, 3, QTableWidgetItem(fetched[i][2]))
-            link_deal = "https://www.cheapshark.com/api/1.0/deals?id=" + fetched[i][2]
+            link_deal = "https://www.cheapshark.com/api/1.0/deals?id=" + \
+                fetched[i][2]
             response = requests.get(link_deal)
             if response.status_code == 200:
                 deal_data = response.json()
@@ -720,23 +728,27 @@ class BinEditWindow(QDialog):
                 old_qnt_bin = int(table.item(row, 5).text())
 
                 dialog = EditItemDialog(self, itemname, qnt, table)
-                
+
                 if dialog.exec() == QDialog.Accepted:
                     new_bin_data = dialog.get_data()
                     new_qnt = int(new_bin_data["Qnt"])
 
                     if new_qnt >= 0:
-                        self.update_bin_and_menu_quantities(item_id, new_qnt, old_qnt_bin, bin_id)
+                        self.update_bin_and_menu_quantities(
+                            item_id, new_qnt, old_qnt_bin, bin_id)
                         self.load_local_bin(self.local_bin_table)
                     else:
-                        QMessageBox.warning(self, "Invalid Input", "Quantity must be a non-negative integer.")
+                        QMessageBox.warning(
+                            self, "Invalid Input", "Quantity must be a non-negative integer.")
                 else:
                     print("Dialog canceled or closed")
             else:
-                QMessageBox.warning(self, "Selection Required", "Please select an item to edit.")
+                QMessageBox.warning(self, "Selection Required",
+                                    "Please select an item to edit.")
         except Exception as e:
             print(f"An error occurred: {e}")
-            QMessageBox.warning(self, "Error", "An error occurred while editing item.")
+            QMessageBox.warning(
+                self, "Error", "An error occurred while editing item.")
 
     def update_bin_and_menu_quantities(self, item_id, new_qnt, old_qnt_bin, bin_id):
         cursor.execute("SELECT qnt FROM menu WHERE item_id = ?;", (item_id,))
@@ -782,7 +794,8 @@ class BinEditWindow(QDialog):
                                             QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
             if response == QMessageBox.Yes:
                 try:
-                    cursor.execute("SELECT qnt FROM menu WHERE item_id = ?;", (item_id,))
+                    cursor.execute(
+                        "SELECT qnt FROM menu WHERE item_id = ?;", (item_id,))
                     old_qnt_menu_fetched = cursor.fetchall()
                     if old_qnt_menu_fetched:
                         old_qnt_menu = old_qnt_menu_fetched[0][0]
@@ -792,7 +805,8 @@ class BinEditWindow(QDialog):
                     cursor.execute(
                         "UPDATE menu SET qnt = qnt + ? WHERE item_id = ?;", (old_qnt_bin, item_id))
                     conn.commit()
-                    cursor.execute("DELETE FROM bin WHERE bin_id = ?;", (bin_id,))
+                    cursor.execute(
+                        "DELETE FROM bin WHERE bin_id = ?;", (bin_id,))
                     conn.commit()
                     self.load_local_bin(self.local_bin_table)
                     QMessageBox.information(
@@ -819,7 +833,7 @@ class BinEditWindow(QDialog):
                 bin_id = int(table.item(row, 0).text())
 
                 dialog = EditItemDialog(self, itemname, qnt, table)
-                
+
                 if dialog.exec() == QDialog.Accepted:
                     new_bin_data = dialog.get_data()
                     new_qnt = int(new_bin_data["Qnt"])
@@ -828,14 +842,17 @@ class BinEditWindow(QDialog):
                         self.update_external_bin_quantities(new_qnt, bin_id)
                         self.load_external_bin(self.exteranl_bin_table)
                     else:
-                        QMessageBox.warning(self, "Invalid Input", "Quantity must be a non-negative integer.")
+                        QMessageBox.warning(
+                            self, "Invalid Input", "Quantity must be a non-negative integer.")
                 else:
                     print("Dialog canceled or closed")
             else:
-                QMessageBox.warning(self, "Selection Required", "Please select an item to edit.")
+                QMessageBox.warning(self, "Selection Required",
+                                    "Please select an item to edit.")
         except Exception as e:
             print(f"An error occurred: {e}")
-            QMessageBox.warning(self, "Error", "An error occurred while editing item.")
+            QMessageBox.warning(
+                self, "Error", "An error occurred while editing item.")
 
     def update_external_bin_quantities(self, new_qnt, bin_id):
         if new_qnt == 0:
@@ -972,6 +989,7 @@ class EditItemDialog(QDialog):
             "Qnt": self.qnt_edit.text()
         }
 
+
 class APIInteraction(QWidget):
     def __init__(self):
         super().__init__()
@@ -1018,6 +1036,23 @@ class APIInteraction(QWidget):
         if dialog.exec_():
             self.load_local_bin(self.local_bin_table)
 
+
+class DealWorker(QObject):
+    finished = pyqtSignal()
+    result = pyqtSignal(list)
+
+    def __init__(self, param, sale_check, value):
+        super().__init__()
+        self.param = param
+        self.sale_check = sale_check
+        self.value = value
+
+    def run(self):
+        deals = api.get_deal(self.param, self.sale_check, self.value)
+        self.result.emit(deals)
+        self.finished.emit()
+
+
 class DealFinderWindow(QDialog):
     def __init__(self):
         super().__init__()
@@ -1031,12 +1066,14 @@ class DealFinderWindow(QDialog):
         layout = QVBoxLayout()
 
         self.search_type_combo = QComboBox()
-        self.search_type_combo.addItems(["Title", "Upper Price", "Lower Price"])
+        self.search_type_combo.addItems(
+            ["Title", "Upper Price", "Lower Price"])
         self.sale_check_box = QCheckBox("Is On Sale")
         self.search_field = QLineEdit()
-        self.search_field.setPlaceholderText("If empty - shows first 60 deals on sale")
+        self.search_field.setPlaceholderText(
+            "If empty - shows first 60 deals on sale")
         self.search_button = QPushButton("Search")
-        self.search_button.clicked.connect(self.perform_search)
+        self.search_button.clicked.connect(self.loading_warning)
 
         self.deals_table = QTableWidget()
         self.deals_table.setColumnCount(8)
@@ -1046,12 +1083,18 @@ class DealFinderWindow(QDialog):
         self.deals_table.setColumnWidth(0, 2 * default_width)
         self.deals_table.setEditTriggers(QTableWidget.NoEditTriggers)
 
+        self.loading_label = QLabel("Loading...")
+        self.loading_label.setVisible(False)
+        self.loading_label.setAlignment(Qt.AlignCenter)
+
         self.no_deals_label = QLabel("No deals found")
         self.no_deals_label.setVisible(False)
         self.no_deals_label.setAlignment(Qt.AlignCenter)
 
-        self.add_to_customer_button = QPushButton("Add Deal to Customer's External Bin")
-        self.add_to_customer_button.clicked.connect(self.open_customer_selection_window)
+        self.add_to_customer_button = QPushButton(
+            "Add Deal to Customer's External Bin")
+        self.add_to_customer_button.clicked.connect(
+            self.open_customer_selection_window)
 
         search_layout = QHBoxLayout()
         search_layout.addWidget(self.search_type_combo)
@@ -1060,22 +1103,37 @@ class DealFinderWindow(QDialog):
         search_layout.addWidget(self.search_button)
 
         layout.addLayout(search_layout)
+        layout.addWidget(self.loading_label)
         layout.addWidget(self.deals_table)
         layout.addWidget(self.no_deals_label)
         layout.addWidget(self.add_to_customer_button)
 
         self.setLayout(layout)
 
-    def perform_search(self):
+    def loading_warning(self):
+        self.loading_label.setVisible(True)
+        self.no_deals_label.setVisible(False)
+        self.deals_table.setRowCount(0)
+
         param = self.search_type_combo.currentIndex() + 1
         sale_check = 1 if self.sale_check_box.isChecked() else 0
         field_text = self.search_field.text()
         value = re.sub(r'[^a-zA-Z0-9]', '', field_text)
 
-        deals = api.get_deal(param, sale_check, value)
-        self.update_deals_table(deals)
+        self.thread = QThread()
+        self.worker = DealWorker(param, sale_check, value)
+        self.worker.moveToThread(self.thread)
+        self.thread.started.connect(self.worker.run)
+        self.worker.finished.connect(self.thread.quit)
+        self.worker.finished.connect(self.worker.deleteLater)
+        self.thread.finished.connect(self.thread.deleteLater)
+        self.worker.result.connect(self.update_deals_table)
+
+        self.thread.start()
 
     def update_deals_table(self, deals):
+        self.loading_label.setVisible(False)
+
         self.deals_table.setRowCount(0)
         if len(deals) == 0:
             self.no_deals_label.setVisible(True)
@@ -1084,28 +1142,35 @@ class DealFinderWindow(QDialog):
             self.deals_table.setRowCount(len(deals))
             for i, deal in enumerate(deals):
                 self.deals_table.setItem(i, 0, QTableWidgetItem(deal['title']))
-                self.deals_table.setItem(i, 1, QTableWidgetItem(deal['gameID']))
+                self.deals_table.setItem(
+                    i, 1, QTableWidgetItem(deal['gameID']))
                 store_id = deal['storeID']
                 self.deals_table.setItem(i, 2, QTableWidgetItem(store_id))
                 store_name = api.get_store(store_id)
                 self.deals_table.setItem(i, 3, QTableWidgetItem(store_name[0]))
-                self.deals_table.setItem(i, 4, QTableWidgetItem("Yes" if deal['isOnSale'] == "1" else "No"))
-                self.deals_table.setItem(i, 5, QTableWidgetItem(deal['salePrice']))
-                self.deals_table.setItem(i, 6, QTableWidgetItem(deal['normalPrice']))
-                self.deals_table.setItem(i, 7, QTableWidgetItem(deal['dealID']))
+                self.deals_table.setItem(i, 4, QTableWidgetItem(
+                    "Yes" if deal['isOnSale'] == "1" else "No"))
+                self.deals_table.setItem(
+                    i, 5, QTableWidgetItem(deal['salePrice']))
+                self.deals_table.setItem(
+                    i, 6, QTableWidgetItem(deal['normalPrice']))
+                self.deals_table.setItem(
+                    i, 7, QTableWidgetItem(deal['dealID']))
 
     def open_customer_selection_window(self):
         selected_row = self.deals_table.currentRow()
         if selected_row == -1:
-            QMessageBox.warning(self, "Selection Required", "Please select a deal first.")
+            QMessageBox.warning(self, "Selection Required",
+                                "Please select a deal first.")
             return
         selected_deal = self.deals_table.item(selected_row, 6).text()
         selected_deal = {
-        'storeID': self.deals_table.item(selected_row, 2).text(),
-        'dealID': self.deals_table.item(selected_row, 7).text()
+            'storeID': self.deals_table.item(selected_row, 2).text(),
+            'dealID': self.deals_table.item(selected_row, 7).text()
         }
         dialog = CustomerSelectionWindow(selected_deal)
         dialog.exec_()
+
 
 class CustomerSelectionWindow(QDialog):
     def __init__(self, selected_deal, parent=None):
@@ -1157,24 +1222,30 @@ class CustomerSelectionWindow(QDialog):
         if not search_term:
             cursor.execute("SELECT username FROM customer_list;")
         else:
-            cursor.execute("SELECT username FROM customer_list WHERE LOWER(username) LIKE ?", ('%' + search_term + '%',))
+            cursor.execute(
+                "SELECT username FROM customer_list WHERE LOWER(username) LIKE ?", ('%' + search_term + '%',))
 
         fetched = cursor.fetchall()
         self.populate_customer_list(fetched)
 
     def add_deal_to_customer_bin(self):
         selected_customer_name = self.customer_list.currentItem().text()
-        cursor.execute("SELECT customer_id FROM customer_list WHERE username LIKE ?", (selected_customer_name,))
+        cursor.execute(
+            "SELECT customer_id FROM customer_list WHERE username LIKE ?", (selected_customer_name,))
         fetched = cursor.fetchall()
         selected_customer = fetched[0][0]
         quantity = self.quantity_input.text()
         if selected_customer and quantity.isdigit():
-            customer.addBin_external(selected_customer, self.selected_deal['dealID'], self.selected_deal['storeID'], quantity)
-            print(f"Adding {self.selected_deal} to {selected_customer}'s bin with quantity {quantity}")
-            QMessageBox.information(self, "Success", "Deal has been added successfully.")
+            customer.addBin_external(
+                selected_customer, self.selected_deal['dealID'], self.selected_deal['storeID'], quantity)
+            print(
+                f"Adding {self.selected_deal} to {selected_customer}'s bin with quantity {quantity}")
+            QMessageBox.information(
+                self, "Success", "Deal has been added successfully.")
             self.accept()
         else:
-            QMessageBox.warning(self, "Input Error", "Please select a customer and enter a valid quantity.")
+            QMessageBox.warning(
+                self, "Input Error", "Please select a customer and enter a valid quantity.")
 
 
 class menu:
@@ -1234,6 +1305,7 @@ class menu:
         found = cursor.fetchall()
         return found
 
+
 class customer:
     def __init__(self, username, date):
         self.username = username
@@ -1267,6 +1339,7 @@ class customer:
         bin_data = (customer_id, item_id, store_id, qnt)
         cursor.execute(insert_bin_query, bin_data)
         conn.commit()
+
 
 class customer_list:
     def __init__(self):
