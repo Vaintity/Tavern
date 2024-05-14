@@ -1330,10 +1330,3 @@ if __name__ == "__main__":
     main_window = MainWindow()
     main_window.show()
     sys.exit(app.exec_())
-
-try:
-    cursor.close()
-    conn.close()
-    print("Connection to database closed successfully.")
-except:
-    print("Closing connection to database failed.")
