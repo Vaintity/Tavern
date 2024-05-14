@@ -194,21 +194,6 @@ class api(ABC):
         if response.status_code == 200:
             deals = response.json()
             return deals
-            '''
-            for game in deals:
-                game_title = game.get('title', 'No title provided')
-                game_id = game.get('gameID', 'No ID provided')
-                store_id = game.get('storeID', 'No ID provided')
-                store_name = api.get_store(store_id)
-                on_sale = game.get('isOnSale', 'No status provided')
-                if on_sale == "1":
-                    on_sale_status = "yes"
-                else: 
-                     on_sale_status = "no"
-                sale_price = game.get('salePrice', 'No price provided')
-                normal_price = game.get('normalPrice', 'No price provided')
-                print(f"\nTitle: {game_title} \nGame ID: {game_id} \nStore: {store_name[0]} \nOn sale: {on_sale_status} \nSale price: {sale_price} \nNormal price: {normal_price}")
-            '''
         else:
             print(f"Failed to fetch data: {response.status_code}, 'N/A'")
 
@@ -222,7 +207,6 @@ class MainWindow(QMainWindow):
         quit = QAction("Quit", self)
         quit.triggered.connect(self.closeEvent)
 
-        # self.create_menu_bar()
         self.status_bar = QStatusBar()
         self.setStatusBar(self.status_bar)
 
@@ -239,19 +223,6 @@ class MainWindow(QMainWindow):
         self.tab_widget.addTab(self.api_interaction_tab, "API Interactions")
 
         self.tab_widget.currentChanged.connect(self.onTabChange)
-
-
-    ''''''
-
-    def create_menu_bar(self):
-        menu_bar = QMenuBar()
-        self.setMenuBar(menu_bar)
-
-        file_menu = menu_bar.addMenu('File')
-        edit_menu = menu_bar.addMenu('Edit')
-        api_menu = menu_bar.addMenu('API')
-
-    ''''''
 
     def onTabChange(self, index):
         if index == 0:
@@ -338,20 +309,17 @@ class MenuManagement(QWidget):
             name = item_data['name']
             price = item_data['price']
             quantity = item_data['quantity']
-            if name and price and quantity:  # Validate that fields are not empty
+            if name and price and quantity:
                 try:
-                    # Ensure that price can be converted to float
                     price = float(price)
-                    # Ensure that quantity can be converted to int
                     quantity = int(quantity)
-                    if price >= 0 and quantity >= 0:  # Additional validation checks
+                    if price >= 0 and quantity >= 0:
                         if menu.findItemName(name):
                             QMessageBox.warning(
                                 self, "Invalid Input", "Item with the same name is already on the menu.")
                         else:
-                            # Add item to the database
                             menu.addItem(name, price, quantity)
-                            self.load_menu_items()  # Refresh the menu items in the table
+                            self.load_menu_items()
                     else:
                         QMessageBox.warning(
                             self, "Invalid Input", "Price and quantity must be non-negative.")
@@ -364,7 +332,7 @@ class MenuManagement(QWidget):
 
     def edit_item(self):
         row = self.table.currentRow()
-        if row != -1:  # Check if any row is selected
+        if row != -1:
             item_id = self.table.item(row, 0).text()
             name = self.table.item(row, 1).text()
             price = self.table.item(row, 2).text()
@@ -376,16 +344,13 @@ class MenuManagement(QWidget):
                 name = item_data['name']
                 price = item_data['price']
                 quantity = item_data['quantity']
-                if name and price and quantity:  # Validate that fields are not empty
+                if name and price and quantity:
                     try:
-                        # Ensure that price can be converted to float
                         price = float(price)
-                        # Ensure that quantity can be converted to int
                         quantity = int(quantity)
-                        if price >= 0 and quantity >= 0:  # Additional validation checks
-                            # Update item in the database
+                        if price >= 0 and quantity >= 0:
                             menu.updateItem(item_id, name, price, quantity)
-                            self.load_menu_items()  # Refresh the menu items in the table
+                            self.load_menu_items()
                         else:
                             QMessageBox.warning(
                                 self, "Invalid Input", "Price and quantity must be non-negative.")
@@ -401,17 +366,15 @@ class MenuManagement(QWidget):
 
     def delete_item(self):
         row = self.table.currentRow()
-        if row != -1:  # Ensure there is a row selected
-            # Get the item_id from the first column
+        if row != -1:
             item_id = self.table.item(row, 0).text()
             response = QMessageBox.question(self, 'Confirm Deletion',
                                             "Are you sure you want to delete this item?",
                                             QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
             if response == QMessageBox.Yes:
                 try:
-                    # Call the method to remove the item from the database
                     menu.removeItem(item_id)
-                    self.load_menu_items()  # Refresh the table to reflect the changes
+                    self.load_menu_items()
                     QMessageBox.information(
                         self, "Success", "Item has been deleted successfully.")
                 except Exception as e:
@@ -441,7 +404,6 @@ class ItemDialog(QDialog):
         self.layout.addRow(QLabel("Price:"), self.price_edit)
         self.layout.addRow(QLabel("Quantity:"), self.qnt_edit)
 
-        # Buttons
         self.ok_button = QPushButton("OK")
         self.cancel_button = QPushButton("Cancel")
         self.ok_button.clicked.connect(self.accept)
@@ -479,7 +441,7 @@ class CustomerManagement(QWidget):
         self.search_field.setPlaceholderText("Enter customer username to find")
         self.search_field.textChanged.connect(self.find_customer)
 
-        search_layout = QHBoxLayout()  # Horizontal layout for search
+        search_layout = QHBoxLayout()
         search_layout.addWidget(self.search_field)
 
         self.add_button = QPushButton("Add Customer")
@@ -601,7 +563,7 @@ class CustomerDialog(QDialog):
         self.username_edit = QLineEdit(username)
         self.layout.addRow(QLabel("Username:"), self.username_edit)
 
-        if customer_id:  # If customer ID is provided, show registration date
+        if customer_id:
             registration_date_label = QLabel(registration_date)
             self.layout.addRow("Registration Date:", registration_date_label)
 
@@ -629,7 +591,7 @@ class ButtonCell(QWidget):
         self.edit_bin_button.setFixedSize(80, 25)
         layout.addWidget(self.edit_bin_button, alignment=Qt.AlignCenter)
         layout.setContentsMargins(0, 0, 0, 0)
-        layout.setAlignment(Qt.AlignCenter)  # Align button in the center
+        layout.setAlignment(Qt.AlignCenter)
         self.setLayout(layout)
 
 
@@ -646,14 +608,12 @@ class BinEditWindow(QDialog):
     def setup_ui(self):
         layout = QVBoxLayout(self)
 
-        # Create tabs for Local Bin and External Bin
         self.tabs = QTabWidget()
         self.local_bin_tab = QWidget()
         self.external_bin_tab = QWidget()
         self.local_bin_table = QTableWidget()
         self.exteranl_bin_table = QTableWidget()
 
-        # Setup each tab with specific data loading, add, edit, and delete functions
         self.setup_bin_tab(0, self.local_bin_tab, self.load_local_bin, self.add_item_local,
                            self.edit_item_localbin, self.delete_item_local, self.local_bin_table)
         self.setup_bin_tab(1, self.external_bin_tab, self.load_external_bin, self.add_item_external,
@@ -667,7 +627,6 @@ class BinEditWindow(QDialog):
     def setup_bin_tab(self, tab_id, tab, load_data_func, add_func, edit_func, delete_func, table=None):
         layout = QVBoxLayout()
 
-        # Table for bin items
         if table is None:
             table = QTableWidget()
         if tab_id == 0:
@@ -681,7 +640,6 @@ class BinEditWindow(QDialog):
 
         load_data_func(table)
 
-        # Buttons for managing items
         btn_layout = QHBoxLayout()
         if tab_id == 0:
             add_button = QPushButton("Add Item")
@@ -765,7 +723,7 @@ class BinEditWindow(QDialog):
                 
                 if dialog.exec() == QDialog.Accepted:
                     new_bin_data = dialog.get_data()
-                    new_qnt = int(new_bin_data["Qnt"])  # Ensure this conversion is safe
+                    new_qnt = int(new_bin_data["Qnt"])
 
                     if new_qnt >= 0:
                         self.update_bin_and_menu_quantities(item_id, new_qnt, old_qnt_bin, bin_id)
@@ -864,7 +822,7 @@ class BinEditWindow(QDialog):
                 
                 if dialog.exec() == QDialog.Accepted:
                     new_bin_data = dialog.get_data()
-                    new_qnt = int(new_bin_data["Qnt"])  # Ensure this conversion is safe
+                    new_qnt = int(new_bin_data["Qnt"])
 
                     if new_qnt >= 0:
                         self.update_external_bin_quantities(new_qnt, bin_id)
@@ -928,7 +886,6 @@ class AddItemDialog(QDialog):
     def setup_ui(self):
         layout = QVBoxLayout()
 
-        # Table to display menu items
         self.table = QTableWidget()
         self.table.setColumnCount(4)
         self.table.setHorizontalHeaderLabels(
@@ -936,7 +893,6 @@ class AddItemDialog(QDialog):
         self.table.setEditTriggers(QTableWidget.NoEditTriggers)
         self.load_menu_items()
 
-        # Quantity input and button to add to bin
         self.quantity_input = QLineEdit()
         self.quantity_input.setPlaceholderText("Enter quantity")
         add_button = QPushButton("Add to Bin")
@@ -1040,7 +996,7 @@ class APIInteraction(QWidget):
         self.store_list_widget.clear()
         store_list = self.get_store()
         for store in store_list:
-            if store[1] == 1:  # Assuming store[1] is the active status
+            if store[1] == 1:
                 self.store_list_widget.addItem(f"{store[0]} - Active")
 
     def get_store(self):
@@ -1074,7 +1030,6 @@ class DealFinderWindow(QDialog):
     def setup_ui(self):
         layout = QVBoxLayout()
 
-        # Search options
         self.search_type_combo = QComboBox()
         self.search_type_combo.addItems(["Title", "Upper Price", "Lower Price"])
         self.sale_check_box = QCheckBox("Is On Sale")
@@ -1083,9 +1038,8 @@ class DealFinderWindow(QDialog):
         self.search_button = QPushButton("Search")
         self.search_button.clicked.connect(self.perform_search)
 
-        # Table to display deals
         self.deals_table = QTableWidget()
-        self.deals_table.setColumnCount(8)  # Title, Game ID, Store, On Sale, Sale Price, Normal Price
+        self.deals_table.setColumnCount(8)
         self.deals_table.setHorizontalHeaderLabels(
             ["Title", "Game ID", "Store ID", "Store", "On Sale", "Sale Price, usd", "Normal Price, usd", "Deal ID"])
         default_width = self.deals_table.horizontalHeader().defaultSectionSize()
@@ -1099,7 +1053,6 @@ class DealFinderWindow(QDialog):
         self.add_to_customer_button = QPushButton("Add Deal to Customer's External Bin")
         self.add_to_customer_button.clicked.connect(self.open_customer_selection_window)
 
-        # Layout configuration
         search_layout = QHBoxLayout()
         search_layout.addWidget(self.search_type_combo)
         search_layout.addWidget(self.sale_check_box)
@@ -1114,12 +1067,11 @@ class DealFinderWindow(QDialog):
         self.setLayout(layout)
 
     def perform_search(self):
-        param = self.search_type_combo.currentIndex() + 1  # 1-Title, 2-Upper Price, 3-Lower Price
+        param = self.search_type_combo.currentIndex() + 1
         sale_check = 1 if self.sale_check_box.isChecked() else 0
         field_text = self.search_field.text()
         value = re.sub(r'[^a-zA-Z0-9]', '', field_text)
 
-        # Assuming get_deal function returns list of deals or error message
         deals = api.get_deal(param, sale_check, value)
         self.update_deals_table(deals)
 
@@ -1172,7 +1124,7 @@ class CustomerSelectionWindow(QDialog):
         self.search_field.setPlaceholderText("Enter customer username to find")
         self.search_field.textChanged.connect(self.find_customer)
 
-        search_layout = QHBoxLayout()  # Horizontal layout for search
+        search_layout = QHBoxLayout()
         search_layout.addWidget(self.search_field)
 
         self.customer_list = QListWidget()
@@ -1191,8 +1143,6 @@ class CustomerSelectionWindow(QDialog):
         self.setLayout(layout)
 
     def load_customers(self):
-        # This function should fetch customers and populate self.customer_list
-        # Placeholder for customer fetching
         cursor.execute("SELECT username FROM customer_list;")
         fetched = cursor.fetchall()
         self.populate_customer_list(fetched)
@@ -1219,14 +1169,12 @@ class CustomerSelectionWindow(QDialog):
         selected_customer = fetched[0][0]
         quantity = self.quantity_input.text()
         if selected_customer and quantity.isdigit():
-            # Placeholder for actual database operation
             customer.addBin_external(selected_customer, self.selected_deal['dealID'], self.selected_deal['storeID'], quantity)
             print(f"Adding {self.selected_deal} to {selected_customer}'s bin with quantity {quantity}")
             QMessageBox.information(self, "Success", "Deal has been added successfully.")
             self.accept()
         else:
             QMessageBox.warning(self, "Input Error", "Please select a customer and enter a valid quantity.")
-
 
 
 class menu:
@@ -1241,16 +1189,6 @@ class menu:
         for i in range(len(self.items)):
             menu_list += f'{i+1}. {self.items[i].name}, {self.items[i].price}, {self.items[i].qnt}; \n'
         return menu_list
-
-    @staticmethod
-    def fetch_menu():
-        fetch_menu_query = "SELECT * FROM menu;"
-        cursor.execute(fetch_menu_query)
-        fetched = cursor.fetchall()
-        menu_fetched = menu()
-        for i in range(len(fetched)):
-            menu_fetched.add(item(fetched[i][1], fetched[i][2], fetched[i][3]))
-        return menu_fetched
 
     @staticmethod
     def addItem(name, price, qnt):
@@ -1288,9 +1226,6 @@ class menu:
         except:
             print("\nNo items were removed from the bin.")
 
-    def add(self, item):
-        self.items.append(item)
-
     @staticmethod
     def findItemName(name):
         find_item_query = "SELECT * FROM menu WHERE name = ?;"
@@ -1298,46 +1233,6 @@ class menu:
         cursor.execute(find_item_query, item_data)
         found = cursor.fetchall()
         return found
-
-    @staticmethod
-    def findItemId(item_id):
-        find_item_query = "SELECT * FROM menu WHERE item_id = ?;"
-        item_data = (item_id,)
-        cursor.execute(find_item_query, item_data)
-        found = cursor.fetchall()
-        return found
-
-
-class item:
-    def __init__(self, name, price, qnt):
-        self.name = name
-        self.price = price
-        self.qnt = qnt
-
-    def __repr__(self):
-        return self
-
-    def __str__(self):
-        return f'Name: {self.name}, Price: {self.price}, Qnt: {self.qnt}.'
-
-    def __eq__(self, other):
-        if isinstance(other, item):
-            if self.name == other.name and self.price == other.price and self.qnt == other.qnt:
-                return True
-            else:
-                return False
-        else:
-            return False
-
-    def change_name(self, name):
-        self.name = name
-
-    def change_price(self, price):
-        self.price = price
-
-    def change_qnt(self, qnt):
-        self.qnt = qnt
-
 
 class customer:
     def __init__(self, username, date):
@@ -1373,52 +1268,6 @@ class customer:
         cursor.execute(insert_bin_query, bin_data)
         conn.commit()
 
-    @staticmethod
-    def checkBin(customer_id):
-        find_customer_query = "SELECT * FROM bin WHERE customer_id = ?;"
-        customer_data = (customer_id,)
-        cursor.execute(find_customer_query, customer_data)
-        found = cursor.fetchall()
-        return found
-
-    @staticmethod
-    def checkBin_api(customer_id):
-        find_customer_query = "SELECT * FROM bin_external WHERE customer_id = ?;"
-        customer_data = (customer_id,)
-        cursor.execute(find_customer_query, customer_data)
-        found = cursor.fetchall()
-        return found
-
-    @staticmethod
-    def show_bin_db(customer_id):
-        customer_bin = customer.checkBin(customer_id)
-        if not customer_bin:
-            return "Bin is empty..."
-        else:
-            cus_bin_text = ""
-            menu_used = menu.fetch_menu()
-            if not menu_used.items:
-                return "Menu is empty..."
-            else:
-                for i in range(len(customer_bin)):
-                    cus_bin_text += f"{i+1}. {menu_used.items[customer_bin[i][2] - 1].name}, price: {menu_used.items[customer_bin[i][2] - 1].price}, quantity: {customer_bin[i][3]} \n"
-                return cus_bin_text
-
-    @staticmethod
-    def show_bin_api(customer_id):
-        customer_bin = customer.checkBin_api(customer_id)
-        if not customer_bin:
-            return "Bin is empty..."
-        else:
-            cus_bin_text = ""
-            for i in range(len(customer_bin)):
-                print(f"{i+1}. Quantity: {customer_bin[i][3]}, details:")
-                api.game_id_show(customer_bin[i][2])
-
-    def change_name(self, name):
-        self.username = name
-
-
 class customer_list:
     def __init__(self):
         self.customers = []
@@ -1431,16 +1280,6 @@ class customer_list:
         for i in range(len(self.customers)):
             customer_list_show += f'{i+1}. {self.customers[i].username}; \n'
         return customer_list_show
-
-    @staticmethod
-    def fetch_customer_list():
-        fetch_customer_list_query = "SELECT * FROM customer_list;"
-        cursor.execute(fetch_customer_list_query)
-        fetched = cursor.fetchall()
-        list_fetched = customer_list()
-        for i in range(len(fetched)):
-            list_fetched.add(customer(fetched[i][1], fetched[i][2]))
-        return list_fetched
 
     @staticmethod
     def addCustomer(username, date):
@@ -1478,9 +1317,6 @@ class customer_list:
         except:
             print("Customer's bin is empty")
 
-    def add(self, customer):
-        self.customers.append(customer)
-
     @staticmethod
     def find_customer_by_username(username):
         find_customer_query = "SELECT * FROM customer_list WHERE username = ?"
@@ -1489,821 +1325,11 @@ class customer_list:
         return found
 
 
-def filtered(menu_obj, filtered_value, oper_1, oper_2):
-    if oper_1 == 1:
-        if oper_2 == 1:
-            filtered_menu = [
-                d for d in menu_obj.items if d.name != filtered_value]
-        elif oper_2 == 2:
-            filtered_menu = [
-                d for d in menu_obj.items if d.price != filtered_value]
-        else:
-            filtered_menu = [
-                d for d in menu_obj.items if d.qnt != filtered_value]
-    else:
-        if oper_2 == 1:
-            filtered_menu = [
-                d for d in menu_obj.items if d.name == filtered_value]
-        elif oper_2 == 2:
-            filtered_menu = [
-                d for d in menu_obj.items if d.price == filtered_value]
-        else:
-            filtered_menu = [
-                d for d in menu_obj.items if d.qnt == filtered_value]
-    return filtered_menu
-
-
-def change_item(item_to_change):
-    while True:
-        print("1. Change name \n2. Change price \n3. Change qnt \n4. Back")
-        choice_it_chan = input()
-
-        if choice_it_chan == "1":
-            print(f"\nCurrent name: {item_to_change.name} \nProvide new name:")
-            name = input()
-            item_to_change.change_name(name)
-
-        elif choice_it_chan == "2":
-            while True:
-                print(
-                    f"\nCurrent price: {item_to_change.price} \nProvide new price:")
-                try:
-                    price = float(input())
-                    if price >= 0:
-                        break
-                    else:
-                        print("\nprice can't be negative\n")
-                except:
-                    print("\nIncorrect value\n")
-            item_to_change.change_price(price)
-
-        elif choice_it_chan == "3":
-            while True:
-                print(
-                    f"\nCurrent qnt: {item_to_change.qnt} \nProvide new qnt:")
-                try:
-                    qnt = int(input())
-                    if qnt >= 0:
-                        break
-                    else:
-                        print("\nqnt can't be negative\n")
-                except:
-                    print("\nIncorrect value\n")
-            item_to_change.change_qnt(qnt)
-
-        elif choice_it_chan == "4":
-            break
-
-        else:
-            print("\nInvalid choice. Please enter a number between 1 and 4.\n")
-
-
-def change_bin_db(customer_id):
-    while True:
-        print("1. Add new item to the bin \n2. Change qnt of an item in the bin \n3. Delete item from the bin \n4. Back")
-        choice_chan_bin = input()
-
-        if choice_chan_bin == "1":
-
-            print("Choose item from the menu: ")
-            menu_used = menu.fetch_menu()
-            print(menu_used)
-            choice_it_add = input()
-
-            try:
-                choice_it_add = int(choice_it_add)
-                item_add = menu.findItemId(choice_it_add)
-
-                if item_add:
-                    print("Provide quantity: ")
-                    it_add_qnt = input()
-
-                    try:
-                        it_add_qnt = int(it_add_qnt)
-                        if 0 < it_add_qnt <= item_add[0][3]:
-
-                            customer.addBin(
-                                customer_id, item_add[0][0], it_add_qnt)
-
-                            cursor.execute(
-                                f"UPDATE menu SET qnt = qnt - {it_add_qnt} WHERE item_id = {item_add[0][0]}")
-                            conn.commit()
-
-                        elif 0 < it_add_qnt > item_add[0][3]:
-                            print(
-                                "Quantity provided is larger then quantity of items in stock")
-                        elif it_add_qnt == 0:
-                            print("No items will be added to the bin")
-                        else:
-                            print("\nqnt can't be negative\n")
-                    except ValueError:
-                        print("\nInvalid input: qnt not a valid int\n")
-                else:
-                    print("Incorrect item number")
-            except:
-                print("Item number must be a number and must be on the menu")
-
-        elif choice_chan_bin == "2":
-
-            customer_bin = customer.checkBin(customer_id)
-            if not customer_bin:
-                print("Bin is empty...")
-            else:
-
-                print(
-                    f"Items currently in the bin: \n{customer.show_bin_db(customer_id)} \n")
-                print("Quantity of what item to change? (provide item number): ")
-                choice_it_bin_chan = input()
-                choice_it_bin_chan = int(choice_it_bin_chan)
-                choice_it_bin_chan -= 1
-
-                try:
-                    if 0 <= choice_it_bin_chan <= len(customer_bin):
-
-                        print("Enter new quantity: ")
-                        new_qnt = input()
-                        try:
-                            new_qnt = int(new_qnt)
-
-                            menu_used = menu.fetch_menu()
-                            max_qnt = menu_used.items[customer_bin[choice_it_bin_chan]
-                                                      [2]].qnt + customer_bin[choice_it_bin_chan][3]
-
-                            if 0 < new_qnt <= max_qnt:
-
-                                update_qnt_add_query = "UPDATE menu SET qnt = qnt + ? WHERE item_id = ?"
-                                update_qnt_add_data = (
-                                    customer_bin[choice_it_bin_chan][3], customer_bin[choice_it_bin_chan][2])
-                                cursor.execute(
-                                    update_qnt_add_query, update_qnt_add_data)
-                                conn.commit()
-
-                                update_qnt_bin_query = "UPDATE bin SET qnt = ? WHERE bin_id = ?"
-                                update_qnt_bin_data = (
-                                    new_qnt, customer_bin[choice_it_bin_chan][0])
-                                cursor.execute(
-                                    update_qnt_bin_query, update_qnt_bin_data)
-                                conn.commit()
-
-                                update_qnt_subtract_query = "UPDATE menu SET qnt = qnt - ? WHERE item_id = ?"
-                                update_qnt_subtract_data = (
-                                    new_qnt, customer_bin[choice_it_bin_chan][2])
-                                cursor.execute(
-                                    update_qnt_subtract_query, update_qnt_subtract_data)
-                                conn.commit()
-                                conn.commit()
-
-                            elif 0 < new_qnt > max_qnt:
-                                print(
-                                    "Quantity provided is larger then quantity of items in stock")
-
-                            elif new_qnt == 0:
-
-                                update_qnt_add_query = "UPDATE menu SET qnt = qnt + ? WHERE item_id = ?"
-                                update_qnt_add_data = (
-                                    customer_bin[choice_it_bin_chan][3], customer_bin[choice_it_bin_chan][2])
-                                cursor.execute(
-                                    update_qnt_add_query, update_qnt_add_data)
-                                conn.commit()
-
-                                delete_from_bin_query = "DELETE FROM bin WHERE bin_id = ?"
-                                delete_from_bin_data = (
-                                    customer_bin[choice_it_bin_chan][0],)
-                                cursor.execute(
-                                    delete_from_bin_query, delete_from_bin_data)
-                                conn.commit()
-
-                                print("Item has been removed from the bin")
-
-                            else:
-                                print("\nqnt can't be negative\n")
-
-                        except ValueError:
-                            print("\nInvalid input: qnt not a valid int\n")
-                    else:
-                        print("There is no item under that number")
-                except:
-                    print("Item number must be a number and must be in the bin")
-
-        elif choice_chan_bin == "3":
-
-            customer_bin = customer.checkBin(customer_id)
-            if not customer_bin:
-                print("Bin is empty...")
-            else:
-
-                print(
-                    f"Items currently in the bin: \n{customer.show_bin_db(customer_id)} \n")
-                print("What item to delete? (provide item number): ")
-                choice_it_bin_del = input()
-
-                try:
-                    choice_it_bin_del = int(choice_it_bin_del)
-                    choice_it_bin_del -= 1
-
-                    if 0 <= choice_it_bin_del <= len(customer_bin):
-
-                        update_qnt_add_query = "UPDATE menu SET qnt = qnt + ? WHERE item_id = ?"
-                        update_qnt_add_data = (
-                            customer_bin[choice_it_bin_del][3], customer_bin[choice_it_bin_del][2])
-                        cursor.execute(update_qnt_add_query,
-                                       update_qnt_add_data)
-                        conn.commit()
-
-                        delete_from_bin_query = "DELETE FROM bin WHERE bin_id = ?"
-                        delete_from_bin_data = (
-                            customer_bin[choice_it_bin_del][0],)
-                        cursor.execute(delete_from_bin_query,
-                                       delete_from_bin_data)
-                        conn.commit()
-
-                        print("Item has been removed from the bin")
-
-                    else:
-                        print("There is no item under that number")
-                except:
-                    print("Item number must be a number and must be in the bin")
-
-        elif choice_chan_bin == "4":
-            break
-
-        else:
-            print("\nInvalid choice. Please enter a number between 1 and 4.\n")
-
-
-def change_bin_api(customer_id):
-    while True:
-        print("1. Add new item to the bin \n2. Change qnt of an item in the bin \n3. Delete item from the bin \n4. Back")
-        choice_chan_bin = input()
-
-        if choice_chan_bin == "1":
-
-            print("Enter game ID:")
-            game_id = input()
-            if api.game_id_check(game_id) == True:
-                print("Enter qnt:")
-                game_qnt = input()
-                try:
-                    customer.addBin_external(find_cus[0][0], game_id, game_qnt)
-                    print("Game added successfully")
-                except:
-                    print("Something went wrong while trying to add game...")
-            else:
-                print("Game not found")
-
-        elif choice_chan_bin == "2":
-
-            customer_bin = customer.checkBin_api(customer_id)
-            if not customer_bin:
-                print("Bin is empty...")
-            else:
-
-                print(
-                    f"Items currently in the bin: \n")
-                customer.show_bin_api(customer_id)
-                print("Quantity of what item to change? (provide item number): ")
-                choice_it_bin_chan = input()
-                choice_it_bin_chan = int(choice_it_bin_chan)
-                choice_it_bin_chan -= 1
-
-                try:
-                    if 0 <= choice_it_bin_chan <= len(customer_bin):
-
-                        print("Enter new quantity: ")
-                        new_qnt = input()
-                        try:
-                            new_qnt = int(new_qnt)
-
-                            if 0 < new_qnt:
-
-                                update_qnt_bin_query = "UPDATE bin_external SET qnt = ? WHERE bin_id = ?"
-                                update_qnt_bin_data = (
-                                    new_qnt, customer_bin[choice_it_bin_chan][0])
-                                cursor.execute(
-                                    update_qnt_bin_query, update_qnt_bin_data)
-                                conn.commit()
-
-                            elif new_qnt == 0:
-
-                                delete_from_bin_query = "DELETE FROM bin_external WHERE bin_id = ?"
-                                delete_from_bin_data = (
-                                    customer_bin[choice_it_bin_chan][0],)
-                                cursor.execute(
-                                    delete_from_bin_query, delete_from_bin_data)
-                                conn.commit()
-
-                                print("Item has been removed from the bin")
-
-                            else:
-                                print("\nqnt can't be negative\n")
-
-                        except ValueError:
-                            print("\nInvalid input: qnt not a valid int\n")
-                    else:
-                        print("There is no item under that number")
-                except:
-                    print("Item number must be a number and must be in the bin")
-
-        elif choice_chan_bin == "3":
-
-            customer_bin = customer.checkBin_api(customer_id)
-            if not customer_bin:
-                print("Bin is empty...")
-            else:
-
-                print(
-                    f"Items currently in the bin: \n")
-                customer.show_bin_api(customer_id)
-                print("What item to delete? (provide item number): ")
-                choice_it_bin_del = input()
-
-                try:
-                    choice_it_bin_del = int(choice_it_bin_del)
-                    choice_it_bin_del -= 1
-
-                    if 0 <= choice_it_bin_del <= len(customer_bin):
-
-                        delete_from_bin_query = "DELETE FROM bin WHERE bin_id = ?"
-                        delete_from_bin_data = (
-                            customer_bin[choice_it_bin_del][0],)
-                        cursor.execute(delete_from_bin_query,
-                                       delete_from_bin_data)
-                        conn.commit()
-
-                        print("Item has been removed from the bin")
-
-                    else:
-                        print("There is no item under that number")
-                except:
-                    print("Item number must be a number and must be in the bin")
-
-        elif choice_chan_bin == "4":
-            break
-
-        else:
-            print("\nInvalid choice. Please enter a number between 1 and 4.\n")
-
-
 if __name__ == "__main__":
     app = QApplication(sys.argv)
     main_window = MainWindow()
     main_window.show()
     sys.exit(app.exec_())
-
-
-def show_menu():
-    print("""\n1. Create item 
-2. Show current item 
-3. Change current item 
-4. Add current item to the menu 
-
-5. Show full menu 
-6. Change item details on the menu 
-7. Simple remove from menu 
-8. Filter menu 
-9. Clear menu 
-
-10. Create customer 
-11. Change current customer's username 
-12. Show current customer's details 
-13. Add current customer to the list 
-
-14. Show customer list 
-15. Delete customer from the list 
-16. Change customer's username on the list 
-17. Edit customer's bin on the list 
-18. Show customer's details on the list 
-19. Clear customer list 
-          
-20. Find game
-21. Find deal
-22. Show stores
-23. Edit customer's bin with external (api) games
-24. Show customer's bin with external (api) games
-
-x. Exit \n""")
-
-
-while True:
-    show_menu()
-    choice = input("Enter your choice (1-24 or x): ")
-
-    if choice == "1":
-        print("Name:")
-        d1_name = input()
-
-        while True:
-            print("Price:")
-            d1_price_str = input()
-            try:
-                d1_price = float(d1_price_str)
-                if d1_price >= 0:
-                    break
-                else:
-                    print("\nprice can't be negative\n")
-            except ValueError:
-                print("\nInvalid input: price not a valid float\n")
-        while True:
-            print("Qnt:")
-            d1_qnt_str = input()
-            try:
-                d1_qnt = int(d1_qnt_str)
-                if d1_qnt >= 0:
-                    break
-                else:
-                    print("\nqnt can't be negative\n")
-            except ValueError:
-                print("\nInvalid input: qnt not a valid int\n")
-        try:
-            item_1 = item(d1_name, d1_price, d1_qnt)
-            print("\nCreated successfully\n")
-        except:
-            print("\nSomething went wrong while trying to create item...\n")
-
-    elif choice == "2":
-        try:
-            item_1
-            print(f"\nCurrent item: \n{item_1}\n")
-        except:
-            print("There are no items created yet")
-
-    elif choice == "3":
-        try:
-            item_1
-            change_item(item_1)
-        except:
-            print("There are no items created yet")
-
-    elif choice == "4":
-        try:
-            if menu.findItemName(item_1.name):
-                print("Item with the same name is already on the menu")
-            else:
-                try:
-                    menu.addItem(item_1.name, item_1.price, item_1.qnt)
-                    print("\nItem was added successfully\n")
-                except:
-                    print("\nSomething went wrong while trying to add an item\n")
-        except NameError:
-            print("There are no items created yet")
-
-    elif choice == "5":
-        try:
-            menu_1 = menu.fetch_menu()
-            print("Menu was loaded.")
-        except:
-            print("Unable to load the menu.")
-        if not menu_1.items:
-            print("Menu is empty...")
-        else:
-            print(menu_1)
-
-    elif choice == "6":
-        if db.isEmpty("menu"):
-            print("Menu is empty...")
-        else:
-            print("Name:")
-            ich_name = input()
-
-            item_f = menu.findItemName(ich_name)
-            if item_f:
-                print("\nItem found\n")
-                item_2 = item(item_f[0][1], item_f[0][2], item_f[0][3])
-                change_item(item_2)
-                try:
-                    menu.updateItem(
-                        item_f[0][0], item_2.name, item_2.price, item_2.qnt)
-                    print("\nItem was updated successfully\n")
-                except:
-                    print("\nSomething went wrong while trying to update an item\n")
-            else:
-                print("\nItem not found\n")
-
-    elif choice == "7":
-        if db.isEmpty("menu"):
-            print("Menu is empty...")
-        else:
-            print("Name:")
-            ir_name = input()
-
-            item_f = menu.findItemName(ir_name)
-            if item_f:
-                print("\nItem found\n")
-                try:
-                    menu.removeItem(item_f[0][0])
-                    print("\nItem was removed successfully\n")
-                except:
-                    print("\nSomething went wrong while trying to remove an item\n")
-            else:
-                print("\nItem not found\n")
-
-    elif choice == "8":
-        try:
-            menu_1 = menu.fetch_menu()
-            print("Menu was loaded.")
-        except:
-            print("Unable to load the menu.")
-
-        if not menu_1.items:
-            print("Menu is empty...")
-        else:
-            print("\n1. Blackilst \n2. Whitelist")
-            while True:
-                try:
-                    oper_1 = int(input())
-                    if 0 < oper_1 < 3:
-                        break
-                    else:
-                        print("\nIncorrect operation number\n")
-                except:
-                    print("\nIncorrect operation value type\n")
-            print("\n1. Name \n2. Price \n3. Qnt")
-            while True:
-                try:
-                    oper_2 = int(input())
-                    if 0 < oper_2 < 4:
-                        break
-                    else:
-                        print("\nIncorrect operation number\n")
-                except:
-                    print("\nIncorrect operation value type\n")
-
-            if oper_2 == 1:
-                print("Provide filtered value (Name): ")
-                filtered_value = input()
-
-            elif oper_2 == 2:
-                while True:
-                    print("Provide filtered value (Price): ")
-                    filtered_value = input()
-                    try:
-                        filtered_value = float(filtered_value)
-                        if filtered_value >= 0:
-                            break
-                        else:
-                            print("\nprice can't be negative\n")
-                    except ValueError:
-                        print("\nInvalid input: price not a valid float\n")
-
-            elif oper_2 == 3:
-                while True:
-                    print("Provide filtered value (Qnt): ")
-                    filtered_value = input()
-                    try:
-                        filtered_value = int(filtered_value)
-                        if filtered_value >= 0:
-                            break
-                        else:
-                            print("\nqnt can't be negative\n")
-                    except ValueError:
-                        print("\nInvalid input: qnt not a valid int\n")
-
-            else:
-                print("\nIncorrect operation 2 value\n")
-
-            filtered_menu = filtered(menu_1, filtered_value, oper_1, oper_2)
-            for i in range(len(filtered_menu)):
-                print(filtered_menu[i])
-
-    elif choice == "9":
-        if db.isEmpty("menu"):
-            print("Menu is empty...")
-        else:
-            print("\nAre you sure you want to delete all items from the menu? (y/n)")
-            choice_clear = input()
-            if choice_clear == "y":
-                db.deleteAllRecords("bin")
-                print("\nBin was cleared")
-                db.deleteAllRecords("menu")
-                print("\nMenu was cleared")
-            elif choice_clear == "n":
-                print("\nMenu remains the same")
-            else:
-                print("\nInvalid input. Returning to main menu...\n")
-
-    elif choice == "10":
-        print("Enter username: ")
-        username = input()
-        try:
-            customer_1 = customer(username, datetime.now().timestamp())
-            print("New customer was created.")
-        except:
-            print("Something went wrong while creating new customer...")
-
-    elif choice == "11":
-        try:
-            customer_1
-            print(
-                f"Current customer's username: {customer_1.username} \nProvide new username:")
-            username = input()
-            customer_1.change_name(username)
-        except:
-            print("There are no customers created yet")
-
-    elif choice == "12":
-        try:
-            customer_1
-            print(f"\nCurrent customer: \n{customer_1}")
-
-        except:
-            print("There are no customers created yet")
-
-    elif choice == "13":
-        try:
-            if customer_list.find_customer_by_username(customer_1.username):
-                print("Customer with this username is already on the list")
-            else:
-                try:
-                    customer_list.addCustomer(
-                        customer_1.username, customer_1.date)
-
-                    print("\nCustomer was added successfully\n")
-                except:
-                    print("\nSomething went wrong while trying to add an customer\n")
-        except NameError:
-            print("There are no customers created yet")
-
-    elif choice == "14":
-        try:
-            list_1 = customer_list.fetch_customer_list()
-            print("Customer list was loaded.")
-        except:
-            print("Unable to load load customer list.")
-        if not list_1.customers:
-            print("List is empty...")
-        else:
-            print(list_1)
-
-    elif choice == "15":
-        if db.isEmpty("customer_list"):
-            print("List is empty...")
-        else:
-            print("Username:")
-            cr_username = input()
-            customer_list.deleteCustomer(cr_username)
-
-    elif choice == "16":
-        if db.isEmpty("customer_list"):
-            print("List is empty...")
-        else:
-            print("Username:")
-            find_chan_cus_username = input()
-            print("Provide new username:")
-            chan_username = input()
-            try:
-                find_chan_cus = customer_list.find_customer_by_username(
-                    find_chan_cus_username)
-                print("Customer found.")
-                customer_list.updateCustomer(
-                    find_chan_cus[0][0], chan_username)
-            except:
-                print("Customer not found\n")
-
-    elif choice == "17":
-        if db.isEmpty("customer_list"):
-            print("List is empty...")
-        else:
-            print("Username:")
-            chan_bin_cus_username = input()
-            chan_bin_cus = customer_list.find_customer_by_username(
-                chan_bin_cus_username)
-            if chan_bin_cus:
-                print("\nCustomer found\n")
-                change_bin_db(chan_bin_cus[0][0])
-            else:
-                print("\nCustomer not found\n")
-
-    elif choice == "18":
-        if db.isEmpty("customer_list"):
-            print("List is empty...")
-        else:
-            print("Username:")
-            show_cus_username = input()
-            show_cus = customer_list.find_customer_by_username(
-                show_cus_username)
-            if show_cus:
-                print(
-                    f'Username: {show_cus[0][1]} \nRegistration date: {datetime.fromtimestamp(show_cus[0][2]).strftime("%d.%m.%Y %H:%M")}')
-                print(
-                    f"Items currently in the bin: \n{customer.show_bin_db(show_cus[0][0])} \n")
-            else:
-                print("\nCustomer not found\n")
-
-    elif choice == "19":
-        if db.isEmpty("customer_list"):
-            print("List is empty...")
-        else:
-            print("\nAre you sure you want to delete all customers from the list? (y/n)")
-            choice_clear = input()
-            if choice_clear == "y":
-
-                fetch_bin_query = "SELECT * FROM bin;"
-                cursor.execute(fetch_bin_query)
-                fetched_bin = cursor.fetchall()
-                for i in range(len(fetched_bin)):
-                    update_qnt_add_query = "UPDATE menu SET qnt = qnt + ? WHERE item_id = ?"
-                    update_qnt_add_data = (
-                        fetched_bin[i][3], fetched_bin[i][2])
-                    cursor.execute(update_qnt_add_query, update_qnt_add_data)
-                    conn.commit()
-
-                db.deleteAllRecords("bin")
-                print("\nBin was cleared")
-                db.deleteAllRecords("bin_external")
-                print("\nExternal bin was cleared")
-                db.deleteAllRecords("customer_list")
-                print("\nCustomer list was cleared")
-            elif choice_clear == "n":
-                print("\nList remains the same")
-            else:
-                print("\nInvalid input. Returning to main menu...\n")
-
-    elif choice == "20":
-        print("Find game by: \n1. Title \n2. SteamAppID \nEnter your choice: ")
-        choice_find_game = input()
-        try:
-            choice_find_game = int(choice_find_game)
-        except ValueError:
-            print("That's not a valid number")
-
-        if choice_find_game == 1:
-            print("Enter game title:")
-            title = input()
-            title = re.sub(r'[^a-zA-Z0-9]', '', title)
-            api.get_game(choice_find_game, title)
-        elif choice_find_game == 2:
-            print("Enter game SteamAppID:")
-            steamAppID = input()
-            api.get_game(choice_find_game, steamAppID)
-        else:
-            print("Incorrect option")
-
-    elif choice == "21":
-        print("Find deal by: \n1. Title \n2. Upper price \n3. Lower price \n4. Show all \nEnter your choice: ")
-        choice_find_game = input()
-        try:
-            choice_find_game = int(choice_find_game)
-        except ValueError:
-            print("That's not a valid number")
-
-        if choice_find_game == 1:
-            print("Enter game title:")
-            title = input()
-            title = re.sub(r'[^a-zA-Z0-9]', '', title)
-            api.get_deal(choice_find_game, title)
-        elif choice_find_game == 2:
-            print("Enter upper price:")
-            upper_price = input()
-            api.get_deal(choice_find_game, upper_price)
-        elif choice_find_game == 3:
-            print("Enter lower price:")
-            lower_price = input()
-            api.get_deal(choice_find_game, lower_price)
-        elif choice_find_game == 4:
-            api.get_deal(choice_find_game, 0)
-
-    elif choice == "22":
-        store_list = api.get_store()
-        for i in range(len(store_list)):
-            print(
-                f"{store_list[i][0]}, {'Active' if store_list[i][1] == 1 else 'Inactive'}")
-
-    elif choice == "23":
-        if db.isEmpty("customer_list"):
-            print("List is empty...")
-        else:
-            print("Username:")
-            cus_username = input()
-            find_cus = customer_list.find_customer_by_username(
-                cus_username)
-            if find_cus:
-                print("\nCustomer found\n")
-                change_bin_api(find_cus[0][0])
-            else:
-                print("\nCustomer not found\n")
-
-    elif choice == "24":
-        if db.isEmpty("customer_list"):
-            print("List is empty...")
-        else:
-            print("Username:")
-            show_cus_username = input()
-            show_cus = customer_list.find_customer_by_username(
-                show_cus_username)
-            if show_cus:
-                print(
-                    f'Username: {show_cus[0][1]}')
-                print(
-                    f"Items currently in the bin: \n")
-                customer.show_bin_api(show_cus[0][0])
-            else:
-                print("\nCustomer not found\n")
-
-    elif choice == "x":
-        print("\nExiting the program. Goodbye!\n")
-        break
-    else:
-        print("\nInvalid choice. Please enter a number between 1 and 24 or x.\n")
 
 try:
     cursor.close()
