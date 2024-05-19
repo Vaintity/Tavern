@@ -10,8 +10,12 @@ import sqlite3
 import requests
 import re
 
-conn = sqlite3.connect('tavern.db')
-cursor = conn.cursor()
+def get_db_connection(db_path='tavern.db'):
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    return conn, cursor
+
+conn, cursor = get_db_connection()
 
 ctq_menu = '''
 CREATE TABLE IF NOT EXISTS menu (
@@ -26,7 +30,7 @@ cursor.execute(ctq_menu)
 ctq_customer_list = '''
 CREATE TABLE IF NOT EXISTS customer_list (
     customer_id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-    username TEXT NOT NULL,
+    username TEXT NOT NULL UNIQUE,
     date REAL
 );
 '''
@@ -61,7 +65,7 @@ conn.commit()
 
 class db:
     @staticmethod
-    def isEmpty(table_name):
+    def isEmpty(table_name, cursor):
         cursor.execute(f"SELECT COUNT(*) FROM {table_name}")
         count = cursor.fetchone()[0]
         if count == 0:
@@ -73,7 +77,7 @@ class db:
             return False
 
     @staticmethod
-    def deleteAllRecords(table_name):
+    def deleteAllRecords(table_name, cursor, conn):
         cursor.execute(f"DELETE FROM {table_name}")
         conn.commit()
 
@@ -320,11 +324,11 @@ class MenuManagement(QWidget):
                     price = float(price)
                     quantity = int(quantity)
                     if price >= 0 and quantity >= 0:
-                        if menu.findItemName(name):
+                        if menu.findItemName(name, cursor):
                             QMessageBox.warning(
                                 self, "Invalid Input", "Item with the same name is already on the menu.")
                         else:
-                            menu.addItem(name, price, quantity)
+                            menu.addItem(name, price, quantity, cursor, conn)
                             self.load_menu_items()
                     else:
                         QMessageBox.warning(
@@ -355,7 +359,7 @@ class MenuManagement(QWidget):
                         price = float(price)
                         quantity = int(quantity)
                         if price >= 0 and quantity >= 0:
-                            menu.updateItem(item_id, name, price, quantity)
+                            menu.updateItem(item_id, name, price, quantity, cursor, conn)
                             self.load_menu_items()
                         else:
                             QMessageBox.warning(
@@ -379,7 +383,7 @@ class MenuManagement(QWidget):
                                             QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
             if response == QMessageBox.Yes:
                 try:
-                    menu.removeItem(item_id)
+                    menu.removeItem(item_id, cursor, conn)
                     self.load_menu_items()
                     QMessageBox.information(
                         self, "Success", "Item has been deleted successfully.")
@@ -507,11 +511,11 @@ class CustomerManagement(QWidget):
             username = customer_data["username"].replace(" ", "")
             registration_date = datetime.now().timestamp()
             if username:
-                if customer_list.find_customer_by_username(username):
+                if customer_list.find_customer_by_username(username, cursor):
                     QMessageBox.warning(
                         self, "Invalid Input", "Customer with the same username is already on the list.")
                 else:
-                    customer_list.addCustomer(username, registration_date)
+                    customer_list.addCustomer(username, registration_date, cursor, conn)
                     self.load_customers()
 
     def edit_customer(self):
@@ -526,7 +530,7 @@ class CustomerManagement(QWidget):
                 customer_data = dialog.get_data()
                 username = customer_data['username']
                 if username:
-                    customer_list.updateCustomer(customer_id, username)
+                    customer_list.updateCustomer(customer_id, username, cursor, conn)
                     self.load_customers()
                 else:
                     QMessageBox.warning(
@@ -544,7 +548,7 @@ class CustomerManagement(QWidget):
                                             QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
             if response == QMessageBox.Yes:
                 try:
-                    customer_list.deleteCustomer(customer_id)
+                    customer_list.deleteCustomer(customer_id, cursor, conn)
                     self.load_customers()
                     QMessageBox.information(
                         self, "Success", "Customer has been deleted successfully.")
@@ -675,16 +679,25 @@ class BinEditWindow(QDialog):
         for i in range(len(fetched)):
             table.setItem(i, 0, QTableWidgetItem(str(fetched[i][0])))
             table.setItem(i, 1, QTableWidgetItem(str(fetched[i][1])))
-            cursor.execute(
-                "SELECT username FROM customer_list WHERE customer_id = ?;", (fetched[i][1],))
+            
+            cursor.execute("SELECT username FROM customer_list WHERE customer_id = ?;", (fetched[i][1],))
             fetched_username = cursor.fetchall()
-            table.setItem(i, 2, QTableWidgetItem(fetched_username[0][0]))
+            if fetched_username:
+                table.setItem(i, 2, QTableWidgetItem(fetched_username[0][0]))
+            else:
+                table.setItem(i, 2, QTableWidgetItem("Unknown"))
+
             table.setItem(i, 3, QTableWidgetItem(str(fetched[i][2])))
-            cursor.execute(
-                "SELECT name FROM menu WHERE item_id = ?;", (fetched[i][2],))
+
+            cursor.execute("SELECT name FROM menu WHERE item_id = ?;", (fetched[i][2],))
             fetched_itemname = cursor.fetchall()
-            table.setItem(i, 4, QTableWidgetItem(fetched_itemname[0][0]))
+            if fetched_itemname:
+                table.setItem(i, 4, QTableWidgetItem(fetched_itemname[0][0]))
+            else:
+                table.setItem(i, 4, QTableWidgetItem("Unknown"))
+
             table.setItem(i, 5, QTableWidgetItem(str(fetched[i][3])))
+
 
     def load_external_bin(self, table):
         fetch_bin_query = "SELECT * FROM bin_external WHERE customer_id = ?;"
@@ -943,7 +956,7 @@ class AddItemDialog(QDialog):
         try:
             quantity_to_add = int(self.quantity_input.text())
             if 0 < quantity_to_add <= max_quantity:
-                customer.addBin(self.customer_id, item_id, quantity_to_add)
+                customer.addBin(self.customer_id, item_id, quantity_to_add, cursor, conn)
                 update_query = "UPDATE menu SET qnt = qnt - ? WHERE item_id = ?"
                 cursor.execute(update_query, (quantity_to_add, item_id))
                 conn.commit()
@@ -1237,7 +1250,7 @@ class CustomerSelectionWindow(QDialog):
         quantity = self.quantity_input.text()
         if selected_customer and quantity.isdigit():
             customer.addBin_external(
-                selected_customer, self.selected_deal['dealID'], self.selected_deal['storeID'], quantity)
+                selected_customer, self.selected_deal['dealID'], self.selected_deal['storeID'], quantity, cursor, conn)
             print(
                 f"Adding {self.selected_deal} to {selected_customer}'s bin with quantity {quantity}")
             QMessageBox.information(
@@ -1249,27 +1262,15 @@ class CustomerSelectionWindow(QDialog):
 
 
 class menu:
-    def __init__(self):
-        self.items = []
-
-    def __repr__(self):
-        return self
-
-    def __str__(self):
-        menu_list = "\nMenu:\n"
-        for i in range(len(self.items)):
-            menu_list += f'{i+1}. {self.items[i].name}, {self.items[i].price}, {self.items[i].qnt}; \n'
-        return menu_list
-
     @staticmethod
-    def addItem(name, price, qnt):
+    def addItem(name, price, qnt, cursor, conn):
         insert_item_query = "INSERT INTO menu (name, price, qnt) VALUES (?, ?, ?);"
         item_data = (name, price, qnt)
         cursor.execute(insert_item_query, item_data)
         conn.commit()
 
     @staticmethod
-    def updateItem(item_id, name, price, qnt):
+    def updateItem(item_id, name, price, qnt, cursor, conn):
         try:
             update_item_query = "UPDATE menu SET name = ?, price = ?, qnt = ? WHERE item_id = ?;"
             item_data = (name, price, qnt, item_id)
@@ -1280,7 +1281,7 @@ class menu:
             print(f"Error updating database: {e}")
 
     @staticmethod
-    def removeItem(item_id):
+    def removeItem(item_id, cursor, conn):
         try:
             delete_item_query = "DELETE FROM menu WHERE item_id = ?"
             cursor.execute(delete_item_query, (item_id,))
@@ -1298,7 +1299,7 @@ class menu:
             print("\nNo items were removed from the bin.")
 
     @staticmethod
-    def findItemName(name):
+    def findItemName(name, cursor):
         find_item_query = "SELECT * FROM menu WHERE name = ?;"
         item_data = (name,)
         cursor.execute(find_item_query, item_data)
@@ -1307,19 +1308,8 @@ class menu:
 
 
 class customer:
-    def __init__(self, username, date):
-        self.username = username
-        self.date = date
-        self.bin = []
-
-    def __repr__(self):
-        return self
-
-    def __str__(self):
-        return f'Username: {self.username} \nRegistration date: {datetime.fromtimestamp(self.date).strftime("%d.%m.%Y %H:%M")}'
-
     @staticmethod
-    def addBin(customer_id, item_id, qnt):
+    def addBin(customer_id, item_id, qnt, cursor, conn):
         check_records_query = "SELECT * FROM bin WHERE customer_id = ? AND item_id = ?;"
         cursor.execute(check_records_query, (customer_id, item_id))
         found = cursor.fetchall()
@@ -1334,7 +1324,7 @@ class customer:
             conn.commit()
 
     @staticmethod
-    def addBin_external(customer_id, item_id, store_id, qnt):
+    def addBin_external(customer_id, item_id, store_id, qnt, cursor, conn):
         insert_bin_query = "INSERT INTO bin_external (customer_id, item_id, store_id, qnt) VALUES (?, ?, ?, ?);"
         bin_data = (customer_id, item_id, store_id, qnt)
         cursor.execute(insert_bin_query, bin_data)
@@ -1342,27 +1332,18 @@ class customer:
 
 
 class customer_list:
-    def __init__(self):
-        self.customers = []
-
-    def __repr__(self):
-        return self
-
-    def __str__(self):
-        customer_list_show = "Customer list:\n"
-        for i in range(len(self.customers)):
-            customer_list_show += f'{i+1}. {self.customers[i].username}; \n'
-        return customer_list_show
+    @staticmethod
+    def addCustomer(username, date, cursor, conn):
+        try:
+            insert_customer_query = "INSERT INTO customer_list (username, date) VALUES (?, ?);"
+            customer_data = (username, date)
+            cursor.execute(insert_customer_query, customer_data)
+            conn.commit()
+        except sqlite3.IntegrityError as e:
+            raise e
 
     @staticmethod
-    def addCustomer(username, date):
-        insert_customer_query = "INSERT INTO customer_list (username, date) VALUES (?, ?);"
-        customer_data = (username, date)
-        cursor.execute(insert_customer_query, customer_data)
-        conn.commit()
-
-    @staticmethod
-    def updateCustomer(customer_id, username):
+    def updateCustomer(customer_id, username, cursor, conn):
         try:
             chan_cus_query = "UPDATE customer_list SET username = ? WHERE customer_id = ?"
             chan_cus_data = (username, customer_id)
@@ -1373,7 +1354,7 @@ class customer_list:
             print(f"Error updating database: {e}")
 
     @staticmethod
-    def deleteCustomer(customer_id):
+    def deleteCustomer(customer_id, cursor, conn):
         try:
             del_cus_query = "DELETE FROM customer_list WHERE customer_id = ?"
             cursor.execute(del_cus_query, (customer_id,))
@@ -1391,7 +1372,7 @@ class customer_list:
             print("Customer's bin is empty")
 
     @staticmethod
-    def find_customer_by_username(username):
+    def find_customer_by_username(username, cursor):
         find_customer_query = "SELECT * FROM customer_list WHERE username = ?"
         cursor.execute(find_customer_query, (username,))
         found = cursor.fetchall()
